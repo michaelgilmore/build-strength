@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Trash2, Edit, Timer, Hand } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
 
 interface Exercise {
   id: string;
@@ -32,6 +33,7 @@ export default function ExerciseCard({
   selected,
   onSelect,
 }: ExerciseCardProps) {
+  const { formatWeight } = useWeightUnit();
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -50,7 +52,7 @@ export default function ExerciseCard({
           <h3 className="font-display text-lg text-foreground">{exercise.name}</h3>
           <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
             <span className="font-semibold text-primary">
-              {exercise.current_weight}kg
+              {formatWeight(exercise.current_weight)}
             </span>
             <span>{exercise.sets} sets</span>
             <div className="flex items-center gap-1">
