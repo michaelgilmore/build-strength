@@ -17,14 +17,25 @@ export default function Settings() {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!currentPassword) {
+      toast({
+        title: "Current password required",
+        description: "Please enter your current password.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if (newPassword.length < 6) {
       toast({
@@ -46,6 +57,23 @@ export default function Settings() {
 
     setIsUpdating(true);
     
+    // Verify current password by re-authenticating
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: user?.email || '',
+      password: currentPassword,
+    });
+
+    if (signInError) {
+      setIsUpdating(false);
+      toast({
+        title: "Incorrect current password",
+        description: "Please check your current password and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update to new password
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
@@ -63,6 +91,7 @@ export default function Settings() {
         title: "Password updated",
         description: "Your password has been changed successfully.",
       });
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -112,6 +141,27 @@ export default function Settings() {
 
               <form onSubmit={handlePasswordChange} className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="current-password">Current Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="current-password"
+                      type={showCurrentPassword ? 'text' : 'password'}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
                   <div className="relative">
                     <Input
@@ -155,7 +205,7 @@ export default function Settings() {
 
                 <Button 
                   type="submit" 
-                  disabled={isUpdating || !newPassword || !confirmPassword}
+                  disabled={isUpdating || !currentPassword || !newPassword || !confirmPassword}
                   className="w-full"
                 >
                   {isUpdating ? 'Updating...' : 'Update Password'}
