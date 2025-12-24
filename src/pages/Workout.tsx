@@ -4,6 +4,7 @@ import { Play, Pause, Check, ThumbsUp, ThumbsDown, SkipForward, Loader2, Calenda
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
+import ExerciseAnimation from '@/components/ExerciseAnimation';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -390,6 +391,15 @@ export default function Workout() {
                 <h2 className="text-3xl font-display text-gradient-fire mb-2">
                   {currentExercise?.name}
                 </h2>
+
+                {/* Exercise Animation */}
+                {currentExercise && (
+                  <ExerciseAnimation 
+                    exerciseName={currentExercise.name} 
+                    className="my-4"
+                  />
+                )}
+
                 <div className="flex items-center justify-center gap-4 text-xl text-muted-foreground mb-4">
                   <span className="font-bold text-primary">{currentExercise?.current_weight}kg</span>
                   <span>•</span>
