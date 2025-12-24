@@ -6,11 +6,13 @@ import { cn } from '@/lib/utils';
 interface Exercise {
   id: string;
   name: string;
+  starting_weight: number;
   current_weight: number;
   sets: number;
+  weight_increment: number;
   workout_type: string;
-  duration_seconds?: number;
-  rest_seconds?: number;
+  duration_seconds: number;
+  rest_seconds: number;
 }
 
 interface ExerciseCardProps {

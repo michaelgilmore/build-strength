@@ -27,6 +27,7 @@ interface Routine {
   name: string;
   is_shared: boolean;
   is_active: boolean;
+  user_id: string;
 }
 
 interface RoutineDay {
