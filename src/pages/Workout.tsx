@@ -170,11 +170,11 @@ export default function Workout() {
     if (timerRef.current) clearInterval(timerRef.current);
   };
 
-  const handleSetComplete = (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
+  const handleSetComplete = async (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
     if (!currentExercise || !user) return;
 
-    // Log the set
-    supabase.from('workout_logs').insert({
+    // Log the set to database
+    const { error } = await supabase.from('workout_logs').insert({
       user_id: user.id,
       exercise_id: currentExercise.id,
       exercise_name: currentExercise.name,
@@ -184,16 +184,21 @@ export default function Workout() {
       difficulty_feedback: feedback || 'neutral',
     });
 
+    if (error) {
+      console.error('Failed to log workout:', error);
+      toast({ title: 'Error', description: 'Failed to save workout data', variant: 'destructive' });
+    }
+
     // Adjust weight based on feedback
     if (feedback === 'too_easy') {
-      supabase
+      await supabase
         .from('exercises')
         .update({ current_weight: currentExercise.current_weight + currentExercise.weight_increment })
         .eq('id', currentExercise.id);
       toast({ title: 'Weight Increased', description: `Next time: ${currentExercise.current_weight + currentExercise.weight_increment}kg` });
     } else if (feedback === 'too_hard') {
       const newWeight = Math.max(0, currentExercise.current_weight - currentExercise.weight_increment);
-      supabase
+      await supabase
         .from('exercises')
         .update({ current_weight: newWeight })
         .eq('id', currentExercise.id);
