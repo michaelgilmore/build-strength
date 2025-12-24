@@ -1,12 +1,12 @@
-import { Dumbbell, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
+import { Dumbbell, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 interface HeaderProps {
   title?: string;
 }
 
-export default function Header({ title = 'Iron Forge' }: HeaderProps) {
+export default function Header({ title = "Muscle Forge" }: HeaderProps) {
   const { signOut } = useAuth();
 
   return (
@@ -18,12 +18,7 @@ export default function Header({ title = 'Iron Forge' }: HeaderProps) {
           </div>
           <h1 className="text-xl font-display text-gradient-fire">{title}</h1>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={signOut}
-          className="text-muted-foreground hover:text-foreground"
-        >
+        <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground hover:text-foreground">
           <LogOut className="w-5 h-5" />
         </Button>
       </div>

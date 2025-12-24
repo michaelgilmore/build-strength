@@ -11,7 +11,7 @@ const EXERCISE_EMOJIS: Record<string, string> = {
   "Push-Ups": "🫸",
 
   // Back
-  "Deadlift": "🏋️",
+  Deadlift: "🏋️",
   "Bent Over Row": "🚣",
   "Lat Pulldown": "⬇️",
   "Pull-Ups": "🧗",
@@ -28,14 +28,14 @@ const EXERCISE_EMOJIS: Record<string, string> = {
   "Face Pull": "🎯",
 
   // Legs
-  "Squat": "🦵",
+  Squat: "🦵",
   "Front Squat": "🦵",
   "Leg Press": "🦵",
   "Leg Extension": "🦵",
   "Leg Curl": "🦵",
   "Romanian Deadlift": "🏋️",
   "Calf Raise": "🦶",
-  "Lunges": "🚶",
+  Lunges: "🚶",
   "Hip Thrust": "🍑",
 
   // Biceps
@@ -49,19 +49,19 @@ const EXERCISE_EMOJIS: Record<string, string> = {
   "Tricep Pushdown": "⬇️",
   "Skull Crusher": "💀",
   "Overhead Tricep Extension": "🙌",
-  "Dips": "⬇️",
+  Dips: "⬇️",
   "Close Grip Bench Press": "🏋️",
 
   // Core
-  "Plank": "🧘",
-  "Crunches": "🔄",
+  Plank: "🧘",
+  Crunches: "🔄",
   "Russian Twist": "🌀",
   "Hanging Leg Raise": "🦵",
   "Ab Wheel Rollout": "🎡",
   "Cable Crunch": "🔄",
 };
 
-const DEFAULT_EMOJI = "💪";
+const DEFAULT_EMOJI = "🏋️";
 
 interface ExerciseAnimationProps {
   exerciseName: string;
