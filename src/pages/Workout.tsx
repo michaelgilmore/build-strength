@@ -407,12 +407,10 @@ export default function Workout() {
 
                 <div className="flex items-center justify-center gap-3 text-xl text-muted-foreground mb-4">
                   <span className="font-bold text-primary">{currentExercise?.current_weight}kg</span>
-                  <span>•</span>
-                  <span>Set {currentSet} of {currentExercise?.sets}</span>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground ml-2"
+                    className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
                     onClick={() => handleSetComplete('too_hard')}
                   >
                     <ThumbsDown className="w-4 h-4" />
@@ -425,6 +423,8 @@ export default function Workout() {
                   >
                     <ThumbsUp className="w-4 h-4" />
                   </Button>
+                  <span>•</span>
+                  <span>Set {currentSet} of {currentExercise?.sets}</span>
                 </div>
 
                 {currentExercise?.workout_type === 'timed' && isWorkoutActive && (
