@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Dumbbell, Plus, Calendar, BarChart3 } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, BarChart3, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { to: '/exercises', icon: Plus, label: 'Exercises' },
   { to: '/routines', icon: Calendar, label: 'Routines' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 export default function BottomNav() {

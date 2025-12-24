@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { useAuth } from '@/hooks/useAuth';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
@@ -29,6 +30,7 @@ export default function Analytics() {
   const [dateRange, setDateRange] = useState<'week' | 'month' | 'all'>('month');
 
   const { user } = useAuth();
+  const { formatWeight, convertWeight, unit } = useWeightUnit();
 
   const fetchLogs = async () => {
     if (!user) return;
@@ -88,8 +90,8 @@ export default function Analytics() {
     return Object.entries(grouped)
       .map(([date, data]) => ({
         date,
-        weight: Math.max(...data.weights),
-        volume: data.volume,
+        weight: convertWeight(Math.max(...data.weights)),
+        volume: convertWeight(data.volume),
       }))
       .reverse();
   };
@@ -111,7 +113,7 @@ export default function Analytics() {
   // Stats
   const filteredLogs = getFilteredLogs();
   const totalWorkouts = [...new Set(filteredLogs.map((l) => new Date(l.completed_at).toDateString()))].length;
-  const totalVolume = filteredLogs.reduce((acc, l) => acc + l.weight_used, 0);
+  const totalVolume = convertWeight(filteredLogs.reduce((acc, l) => acc + l.weight_used, 0));
   const tooEasyCount = filteredLogs.filter((l) => l.difficulty_feedback === 'too_easy').length;
   const tooHardCount = filteredLogs.filter((l) => l.difficulty_feedback === 'too_hard').length;
 
@@ -121,6 +123,8 @@ export default function Analytics() {
     const maxWeight = Math.max(...exLogs.map((l) => l.weight_used), 0);
     return { name: ex, weight: maxWeight };
   }).sort((a, b) => b.weight - a.weight).slice(0, 5);
+
+  const volumeUnit = unit === 'kg' ? 't' : 'klbs';
 
   if (loading) {
     return (
@@ -187,7 +191,7 @@ export default function Analytics() {
               >
                 <Dumbbell className="w-5 h-5 text-primary mb-2" />
                 <div className="text-2xl font-display text-foreground">
-                  {(totalVolume / 1000).toFixed(1)}t
+                  {(totalVolume / 1000).toFixed(1)}{volumeUnit}
                 </div>
                 <div className="text-sm text-muted-foreground">Total Volume</div>
               </motion.div>
@@ -319,7 +323,7 @@ export default function Analytics() {
                       </span>
                       <span className="font-medium">{pb.name}</span>
                     </div>
-                    <span className="font-display text-primary">{pb.weight}kg</span>
+                    <span className="font-display text-primary">{formatWeight(pb.weight)}</span>
                   </div>
                 ))}
               </div>

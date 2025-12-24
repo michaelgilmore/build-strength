@@ -8,6 +8,7 @@ import ExerciseAnimation from '@/components/ExerciseAnimation';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { supabase } from '@/integrations/supabase/client';
 import { DAYS_OF_WEEK } from '@/lib/exercises';
 import { cn } from '@/lib/utils';
@@ -72,6 +73,7 @@ export default function Workout() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
+  const { formatWeight } = useWeightUnit();
   const navigate = useNavigate();
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
@@ -191,18 +193,19 @@ export default function Workout() {
 
     // Adjust weight based on feedback
     if (feedback === 'too_easy') {
+      const newWeight = currentExercise.current_weight + currentExercise.weight_increment;
       await supabase
         .from('exercises')
-        .update({ current_weight: currentExercise.current_weight + currentExercise.weight_increment })
+        .update({ current_weight: newWeight })
         .eq('id', currentExercise.id);
-      toast({ title: 'Weight Increased', description: `Next time: ${currentExercise.current_weight + currentExercise.weight_increment}kg` });
+      toast({ title: 'Weight Increased', description: `Next time: ${formatWeight(newWeight)}` });
     } else if (feedback === 'too_hard') {
       const newWeight = Math.max(0, currentExercise.current_weight - currentExercise.weight_increment);
       await supabase
         .from('exercises')
         .update({ current_weight: newWeight })
         .eq('id', currentExercise.id);
-      toast({ title: 'Weight Decreased', description: `Next time: ${newWeight}kg` });
+      toast({ title: 'Weight Decreased', description: `Next time: ${formatWeight(newWeight)}` });
     }
 
     playBellSound();
@@ -406,7 +409,7 @@ export default function Workout() {
                 )}
 
                 <div className="flex items-center justify-center gap-3 text-xl text-muted-foreground mb-4">
-                  <span className="font-bold text-primary">{currentExercise?.current_weight}kg</span>
+                  <span className="font-bold text-primary">{currentExercise ? formatWeight(currentExercise.current_weight) : ''}</span>
                   <Button
                     variant="outline"
                     size="icon"
@@ -485,7 +488,7 @@ export default function Workout() {
                   <span className="text-muted-foreground text-sm">{currentExerciseIndex + 2 + idx}</span>
                   <span className="font-medium">{day.exercise.name}</span>
                   <span className="text-sm text-muted-foreground ml-auto">
-                    {day.exercise.current_weight}kg
+                    {formatWeight(day.exercise.current_weight)}
                   </span>
                 </div>
               ))}

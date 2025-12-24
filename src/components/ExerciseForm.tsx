@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { DEFAULT_EXERCISES, EXERCISE_CATEGORIES } from '@/lib/exercises';
 import { cn } from '@/lib/utils';
+import { useWeightUnit } from '@/hooks/useWeightUnit';
 
 interface ExerciseFormData {
   name: string;
@@ -32,6 +33,7 @@ export default function ExerciseForm({
   onCancel,
   isEditing = false,
 }: ExerciseFormProps) {
+  const { unit, formatWeight } = useWeightUnit();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [formData, setFormData] = useState<ExerciseFormData>({
@@ -133,7 +135,7 @@ export default function ExerciseForm({
                     )}
                   >
                     <span className="font-medium">{ex.name}</span>
-                    <span className="text-sm ml-2 opacity-70">{ex.defaultWeight}kg</span>
+                    <span className="text-sm ml-2 opacity-70">{formatWeight(ex.defaultWeight)}</span>
                   </button>
                 ))}
               </div>
@@ -153,7 +155,7 @@ export default function ExerciseForm({
           {/* Weight Settings */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Starting Weight (kg)</Label>
+              <Label>Starting Weight ({unit})</Label>
               <Input
                 type="number"
                 step="0.5"
@@ -182,7 +184,7 @@ export default function ExerciseForm({
           </div>
 
           <div className="space-y-2">
-            <Label>Weight Increment (kg)</Label>
+            <Label>Weight Increment ({unit})</Label>
             <Input
               type="number"
               step="0.5"
