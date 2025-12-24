@@ -397,12 +397,30 @@ export default function Workout() {
                   {currentExercise?.name}
                 </h2>
 
-                {/* Exercise Animation */}
+                {/* Exercise Animation with Difficulty Buttons */}
                 {currentExercise && (
-                  <ExerciseAnimation 
-                    exerciseName={currentExercise.name} 
-                    className="my-4"
-                  />
+                  <div className="flex items-center justify-center gap-3 my-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground shrink-0"
+                      onClick={() => handleSetComplete('too_hard')}
+                    >
+                      <ThumbsDown className="w-4 h-4" />
+                    </Button>
+                    <ExerciseAnimation 
+                      exerciseName={currentExercise.name} 
+                      className=""
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-10 w-10 border-success text-success hover:bg-success hover:text-success-foreground shrink-0"
+                      onClick={() => handleSetComplete('too_easy')}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                    </Button>
+                  </div>
                 )}
 
                 <div className="flex items-center justify-center gap-4 text-xl text-muted-foreground mb-4">
@@ -456,27 +474,6 @@ export default function Workout() {
               </Button>
             )}
 
-            {/* Difficulty Feedback */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                onClick={() => handleSetComplete('too_hard')}
-              >
-                <ThumbsDown className="w-5 h-5 mr-2" />
-                Too Hard
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-success text-success hover:bg-success hover:text-success-foreground"
-                onClick={() => handleSetComplete('too_easy')}
-              >
-                <ThumbsUp className="w-5 h-5 mr-2" />
-                Too Easy
-              </Button>
-            </div>
           </div>
         )}
 
