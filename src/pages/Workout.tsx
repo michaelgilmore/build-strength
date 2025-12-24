@@ -69,6 +69,7 @@ export default function Workout() {
   const [showRoutineSelector, setShowRoutineSelector] = useState(false);
   const [availableRoutines, setAvailableRoutines] = useState<Routine[]>([]);
   const [workoutComplete, setWorkoutComplete] = useState(false);
+  const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { user } = useAuth();
@@ -78,6 +79,41 @@ export default function Workout() {
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
   const today = new Date().getDay();
+
+  const checkIfWorkoutCompletedToday = useCallback(async (exercises: RoutineDay[]) => {
+    if (!user || exercises.length === 0) return false;
+
+    // Get today's date range (start and end of day)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // For each exercise, check if all sets have been logged today
+    for (const routineDay of exercises) {
+      const exercise = routineDay.exercise;
+      
+      const { data: logs, error } = await supabase
+        .from('workout_logs')
+        .select('set_number')
+        .eq('user_id', user.id)
+        .eq('exercise_id', exercise.id)
+        .gte('completed_at', todayStart.toISOString())
+        .lte('completed_at', todayEnd.toISOString());
+
+      if (error || !logs) return false;
+
+      // Check if all sets are completed for this exercise
+      const completedSets = new Set(logs.map(l => l.set_number));
+      for (let i = 1; i <= exercise.sets; i++) {
+        if (!completedSets.has(i)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }, [user]);
 
   const fetchActiveRoutine = useCallback(async () => {
     if (!user) return;
@@ -101,7 +137,12 @@ export default function Workout() {
         .order('exercise_order');
 
       if (days && days.length > 0) {
-        setTodaysExercises(days.map((d: any) => ({ ...d, exercise: d.exercises })));
+        const mappedExercises = days.map((d: any) => ({ ...d, exercise: d.exercises }));
+        setTodaysExercises(mappedExercises);
+        
+        // Check if workout was already completed today
+        const completed = await checkIfWorkoutCompletedToday(mappedExercises);
+        setAlreadyCompletedToday(completed);
       } else {
         setTodaysExercises([]);
       }
@@ -117,7 +158,7 @@ export default function Workout() {
     }
 
     setLoading(false);
-  }, [user, today]);
+  }, [user, today, checkIfWorkoutCompletedToday]);
 
   useEffect(() => {
     fetchActiveRoutine();
@@ -294,7 +335,42 @@ export default function Workout() {
     );
   }
 
-  // Workout Complete Screen
+  // Already completed today's workout
+  if (alreadyCompletedToday) {
+    return (
+      <div className="min-h-screen pb-20">
+        <Header />
+        <main className="px-4 py-12 max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', stiffness: 200 }}
+          >
+            <div className="w-24 h-24 rounded-full bg-gradient-fire flex items-center justify-center mx-auto mb-6">
+              <Check className="w-12 h-12 text-primary-foreground" />
+            </div>
+            <h2 className="text-3xl font-display text-gradient-fire mb-4">
+              Congrats! You've completed today's workout!
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              All {todaysExercises.length} exercises for {DAYS_OF_WEEK[today]} are done. Rest up and come back tomorrow!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button variant="fire" size="lg" onClick={() => navigate('/analytics')}>
+                View Progress
+              </Button>
+              <Button variant="outline" size="lg" onClick={() => navigate('/routines')}>
+                Edit Routine
+              </Button>
+            </div>
+          </motion.div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // Workout Complete Screen (just finished now)
   if (workoutComplete) {
     return (
       <div className="min-h-screen pb-20">
