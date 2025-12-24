@@ -1,35 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Dumbbell, Mail, Lock, User, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { z } from 'zod';
-import loginBg from '@/assets/login-bg.jpg';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Dumbbell, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import loginBg from "@/assets/login-bg.jpg";
 
 const authSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
-  displayName: z.string().min(2, 'Name must be at least 2 characters').optional(),
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  displayName: z.string().min(2, "Name must be at least 2 characters").optional(),
 });
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate("/");
     }
   }, [user, navigate]);
 
@@ -58,54 +58,54 @@ export default function Auth() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
+
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
+          if (error.message.includes("Invalid login credentials")) {
             toast({
-              title: 'Login Failed',
-              description: 'Invalid email or password. Please try again.',
-              variant: 'destructive',
+              title: "Login Failed",
+              description: "Invalid email or password. Please try again.",
+              variant: "destructive",
             });
           } else {
             toast({
-              title: 'Error',
+              title: "Error",
               description: error.message,
-              variant: 'destructive',
+              variant: "destructive",
             });
           }
         } else {
           toast({
-            title: 'Welcome back!',
-            description: 'Ready to crush your workout.',
+            title: "Welcome back!",
+            description: "Ready to crush your workout.",
           });
         }
       } else {
         const { error } = await signUp(email, password, displayName);
         if (error) {
-          if (error.message.includes('already registered')) {
+          if (error.message.includes("already registered")) {
             toast({
-              title: 'Account Exists',
-              description: 'This email is already registered. Try logging in.',
-              variant: 'destructive',
+              title: "Account Exists",
+              description: "This email is already registered. Try logging in.",
+              variant: "destructive",
             });
           } else {
             toast({
-              title: 'Error',
+              title: "Error",
               description: error.message,
-              variant: 'destructive',
+              variant: "destructive",
             });
           }
         } else {
           toast({
-            title: 'Account created!',
-            description: 'Welcome to Iron Forge. Time to lift!',
+            title: "Account created!",
+            description: "Welcome to Iron Forge. Time to lift!",
           });
         }
       }
@@ -117,12 +117,12 @@ export default function Auth() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden">
       {/* Background Image */}
-      <div 
+      <div
         className="absolute inset-0 z-0"
         style={{
           backgroundImage: `url(${loginBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       />
       {/* Dark Overlay */}
@@ -138,13 +138,13 @@ export default function Auth() {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
             className="w-20 h-20 rounded-2xl bg-gradient-fire flex items-center justify-center mb-4 shadow-fire"
           >
             <Dumbbell className="w-10 h-10 text-primary-foreground" />
           </motion.div>
-          <h1 className="text-4xl font-display text-gradient-fire">Iron Forge</h1>
-          <p className="text-muted-foreground mt-2">Forge Your Strength</p>
+          <h1 className="text-4xl font-display text-gradient-fire">Muscle Forge</h1>
+          <p className="text-muted-foreground mt-2">Fulfill your potential</p>
         </div>
 
         {/* Auth Form */}
@@ -155,7 +155,7 @@ export default function Auth() {
           className="card-intense p-6"
         >
           <h2 className="text-2xl font-display text-foreground mb-6 text-center">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            {isLogin ? "Welcome Back" : "Create Account"}
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -172,9 +172,7 @@ export default function Auth() {
                     className="pl-10"
                   />
                 </div>
-                {errors.displayName && (
-                  <p className="text-destructive text-sm">{errors.displayName}</p>
-                )}
+                {errors.displayName && <p className="text-destructive text-sm">{errors.displayName}</p>}
               </div>
             )}
 
@@ -190,9 +188,7 @@ export default function Auth() {
                   className="pl-10"
                 />
               </div>
-              {errors.email && (
-                <p className="text-destructive text-sm">{errors.email}</p>
-              )}
+              {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
             </div>
 
             <div className="space-y-2">
@@ -207,25 +203,11 @@ export default function Auth() {
                   className="pl-10"
                 />
               </div>
-              {errors.password && (
-                <p className="text-destructive text-sm">{errors.password}</p>
-              )}
+              {errors.password && <p className="text-destructive text-sm">{errors.password}</p>}
             </div>
 
-            <Button
-              type="submit"
-              variant="fire"
-              size="lg"
-              className="w-full mt-6"
-              disabled={loading}
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : isLogin ? (
-                'Sign In'
-              ) : (
-                'Create Account'
-              )}
+            <Button type="submit" variant="fire" size="lg" className="w-full mt-6" disabled={loading}>
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : isLogin ? "Sign In" : "Create Account"}
             </Button>
           </form>
 
@@ -239,13 +221,11 @@ export default function Auth() {
             >
               {isLogin ? (
                 <>
-                  Don't have an account?{' '}
-                  <span className="text-primary font-semibold">Sign up</span>
+                  Don't have an account? <span className="text-primary font-semibold">Sign up</span>
                 </>
               ) : (
                 <>
-                  Already have an account?{' '}
-                  <span className="text-primary font-semibold">Sign in</span>
+                  Already have an account? <span className="text-primary font-semibold">Sign in</span>
                 </>
               )}
             </button>
