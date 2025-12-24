@@ -17,6 +17,7 @@ const EXERCISE_EMOJIS: Record<string, string> = {
   "Pull-Ups": "🧗",
   "Seated Cable Row": "🚣",
   "T-Bar Row": "🚣",
+  "Upright Row": "⬆️",
 
   // Shoulders
   "Overhead Press": "🙌",
