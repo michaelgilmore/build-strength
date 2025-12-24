@@ -397,36 +397,34 @@ export default function Workout() {
                   {currentExercise?.name}
                 </h2>
 
-                {/* Exercise Animation with Difficulty Buttons */}
+                {/* Exercise Animation */}
                 {currentExercise && (
-                  <div className="flex items-center justify-center gap-3 my-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-10 w-10 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground shrink-0"
-                      onClick={() => handleSetComplete('too_hard')}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                    </Button>
-                    <ExerciseAnimation 
-                      exerciseName={currentExercise.name} 
-                      className=""
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-10 w-10 border-success text-success hover:bg-success hover:text-success-foreground shrink-0"
-                      onClick={() => handleSetComplete('too_easy')}
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  <ExerciseAnimation 
+                    exerciseName={currentExercise.name} 
+                    className="my-4"
+                  />
                 )}
 
-                <div className="flex items-center justify-center gap-4 text-xl text-muted-foreground mb-4">
+                <div className="flex items-center justify-center gap-3 text-xl text-muted-foreground mb-4">
                   <span className="font-bold text-primary">{currentExercise?.current_weight}kg</span>
                   <span>•</span>
                   <span>Set {currentSet} of {currentExercise?.sets}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground ml-2"
+                    onClick={() => handleSetComplete('too_hard')}
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 border-success text-success hover:bg-success hover:text-success-foreground"
+                    onClick={() => handleSetComplete('too_easy')}
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                  </Button>
                 </div>
 
                 {currentExercise?.workout_type === 'timed' && isWorkoutActive && (
