@@ -1,12 +1,12 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Dumbbell, Plus, Calendar, ClipboardList, Settings } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, ClipboardList, Settings, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { to: '/', icon: Dumbbell, label: 'Workout' },
+  { to: '/muscles', icon: Activity, label: 'Muscles' },
   { to: '/exercises', icon: Plus, label: 'Exercises' },
   { to: '/routines', icon: Calendar, label: 'Routines' },
-  { to: '/workout-log', icon: ClipboardList, label: 'Log' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ];
 
