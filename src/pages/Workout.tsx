@@ -22,6 +22,7 @@ interface Exercise {
   workout_type: string;
   duration_seconds: number;
   rest_seconds: number;
+  reps: number;
 }
 
 interface RoutineDay {
@@ -107,11 +108,15 @@ export default function Workout() {
   const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
   const [isEditingWeight, setIsEditingWeight] = useState(false);
   const [editedWeight, setEditedWeight] = useState('');
+  const [isEditingReps, setIsEditingReps] = useState(false);
+  const [editedReps, setEditedReps] = useState('');
+  const [currentReps, setCurrentReps] = useState<number>(10);
   const [workoutStarted, setWorkoutStarted] = useState(false);
   const [todaysAudioUrl, setTodaysAudioUrl] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
+  const repsInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -211,6 +216,32 @@ export default function Workout() {
     fetchActiveRoutine();
   }, [fetchActiveRoutine]);
 
+  // Fetch last reps for current exercise when it changes
+  const fetchLastReps = useCallback(async () => {
+    if (!user || !currentExercise) return;
+    
+    // Get the most recent workout log for this exercise
+    const { data: lastLog } = await supabase
+      .from('workout_logs')
+      .select('reps')
+      .eq('user_id', user.id)
+      .eq('exercise_id', currentExercise.id)
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (lastLog?.reps) {
+      setCurrentReps(lastLog.reps);
+    } else {
+      // Fall back to exercise default
+      setCurrentReps(currentExercise.reps);
+    }
+  }, [user, currentExercise]);
+
+  useEffect(() => {
+    fetchLastReps();
+  }, [fetchLastReps]);
+
   // Timer effect for both workout and rest periods
   useEffect(() => {
     // Clear any existing timer
@@ -294,7 +325,7 @@ export default function Workout() {
   const handleSetComplete = async (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
     if (!currentExercise || !user) return;
 
-    // Log the set to database
+    // Log the set to database with reps
     const { error } = await supabase.from('workout_logs').insert({
       user_id: user.id,
       exercise_id: currentExercise.id,
@@ -303,6 +334,7 @@ export default function Workout() {
       weight_used: currentExercise.current_weight,
       workout_type: currentExercise.workout_type,
       difficulty_feedback: feedback || 'neutral',
+      reps: currentReps,
     });
 
     if (error) {
@@ -405,6 +437,23 @@ export default function Workout() {
     ));
     setIsEditingWeight(false);
     toast({ title: 'Weight updated' });
+  };
+
+  const openRepsEditor = () => {
+    setEditedReps(currentReps.toString());
+    setIsEditingReps(true);
+    setTimeout(() => repsInputRef.current?.focus(), 50);
+  };
+
+  const saveReps = () => {
+    const inputReps = parseInt(editedReps);
+    if (isNaN(inputReps) || inputReps < 1) {
+      toast({ title: 'Invalid reps', variant: 'destructive' });
+      return;
+    }
+    setCurrentReps(inputReps);
+    setIsEditingReps(false);
+    toast({ title: 'Reps updated' });
   };
 
   if (loading) {
@@ -573,7 +622,7 @@ export default function Workout() {
                   </span>
                   <span className="font-medium">{day.exercise.name}</span>
                   <span className="text-sm text-muted-foreground ml-auto">
-                    {formatWeight(day.exercise.current_weight)} × {day.exercise.sets}
+                    {formatWeight(day.exercise.current_weight)} × {day.exercise.reps} reps × {day.exercise.sets} sets
                   </span>
                 </div>
               ))}
@@ -668,50 +717,87 @@ export default function Workout() {
                   />
                 )}
 
-                <div className="flex items-center justify-center gap-3 text-xl text-muted-foreground mb-4">
-                  {isEditingWeight ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        ref={weightInputRef}
-                        type="number"
-                        value={editedWeight}
-                        onChange={(e) => setEditedWeight(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') saveWeight();
-                          if (e.key === 'Escape') setIsEditingWeight(false);
-                        }}
-                        className="w-20 px-2 py-1 text-center font-bold text-primary bg-background border border-border rounded"
-                      />
-                      <Button size="sm" variant="fire" onClick={saveWeight}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={() => setIsEditingWeight(false)}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={openWeightEditor}
-                      className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                <div className="flex flex-col items-center gap-3 text-xl text-muted-foreground mb-4">
+                  {/* Weight and Reps Row */}
+                  <div className="flex items-center gap-4">
+                    {/* Weight Editor */}
+                    {isEditingWeight ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={weightInputRef}
+                          type="number"
+                          value={editedWeight}
+                          onChange={(e) => setEditedWeight(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveWeight();
+                            if (e.key === 'Escape') setIsEditingWeight(false);
+                          }}
+                          className="w-20 px-2 py-1 text-center font-bold text-primary bg-background border border-border rounded"
+                        />
+                        <Button size="sm" variant="fire" onClick={saveWeight}>Save</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setIsEditingWeight(false)}>Cancel</Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={openWeightEditor}
+                        className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        {currentExercise ? formatWeight(currentExercise.current_weight) : ''}
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                    
+                    <span className="text-muted-foreground">×</span>
+                    
+                    {/* Reps Editor */}
+                    {isEditingReps ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          ref={repsInputRef}
+                          type="number"
+                          value={editedReps}
+                          onChange={(e) => setEditedReps(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveReps();
+                            if (e.key === 'Escape') setIsEditingReps(false);
+                          }}
+                          className="w-16 px-2 py-1 text-center font-bold text-primary bg-background border border-border rounded"
+                        />
+                        <Button size="sm" variant="fire" onClick={saveReps}>Save</Button>
+                        <Button size="sm" variant="ghost" onClick={() => setIsEditingReps(false)}>Cancel</Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={openRepsEditor}
+                        className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        {currentReps} reps
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Feedback and Set Info Row */}
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                      onClick={() => handleSetComplete('too_hard')}
                     >
-                      {currentExercise ? formatWeight(currentExercise.current_weight) : ''}
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    onClick={() => handleSetComplete('too_hard')}
-                  >
-                    <ThumbsDown className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8 border-success text-success hover:bg-success hover:text-success-foreground"
-                    onClick={() => handleSetComplete('too_easy')}
-                  >
-                    <ThumbsUp className="w-4 h-4" />
-                  </Button>
-                  <span>•</span>
-                  <span>Set {currentSet} of {currentExercise?.sets}</span>
+                      <ThumbsDown className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 border-success text-success hover:bg-success hover:text-success-foreground"
+                      onClick={() => handleSetComplete('too_easy')}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                    </Button>
+                    <span>•</span>
+                    <span>Set {currentSet} of {currentExercise?.sets}</span>
+                  </div>
                 </div>
 
                 {currentExercise?.workout_type === 'timed' && isWorkoutActive && (
