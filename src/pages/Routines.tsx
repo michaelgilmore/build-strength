@@ -330,9 +330,14 @@ export default function Routines() {
       }
 
       toast({ title: 'Audio uploaded', description: `Audio set for ${DAYS_OF_WEEK[selectedDay]}` });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Upload error:', err);
-      toast({ title: 'Upload failed', description: 'Could not upload audio file', variant: 'destructive' });
+      const errorMessage = err?.message || err?.error_description || JSON.stringify(err);
+      toast({ 
+        title: 'Upload failed', 
+        description: `Could not upload audio file: ${errorMessage}`, 
+        variant: 'destructive' 
+      });
     } finally {
       setUploadingAudio(false);
       if (audioInputRef.current) audioInputRef.current.value = '';
