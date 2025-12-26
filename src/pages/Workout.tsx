@@ -39,23 +39,57 @@ interface Routine {
   user_id: string;
 }
 
-// Bell sound using Web Audio API
+// Boxing bell sound using Web Audio API
 function playBellSound() {
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  const oscillator = audioContext.createOscillator();
-  const gainNode = audioContext.createGain();
-  
-  oscillator.connect(gainNode);
-  gainNode.connect(audioContext.destination);
-  
-  oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-  oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.3);
-  
-  gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-  
-  oscillator.start(audioContext.currentTime);
-  oscillator.stop(audioContext.currentTime + 0.5);
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create multiple oscillators for a richer bell sound
+    const frequencies = [800, 1200, 1600];
+    
+    frequencies.forEach((freq, index) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(freq * 0.5, audioContext.currentTime + 0.8);
+      
+      const volume = 0.3 / (index + 1);
+      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.8);
+    });
+    
+    // Add a second strike for that classic double-bell boxing sound
+    setTimeout(() => {
+      frequencies.forEach((freq, index) => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(freq * 0.5, audioContext.currentTime + 0.8);
+        
+        const volume = 0.3 / (index + 1);
+        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.8);
+      });
+    }, 150);
+  } catch (err) {
+    console.log('Failed to play bell sound:', err);
+  }
 }
 
 export default function Workout() {
@@ -177,16 +211,26 @@ export default function Workout() {
     fetchActiveRoutine();
   }, [fetchActiveRoutine]);
 
+  // Timer effect for both workout and rest periods
   useEffect(() => {
-    if (isWorkoutActive && timeRemaining > 0) {
+    // Clear any existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // Start timer if we have time remaining (either for timed exercise or rest)
+    if (timeRemaining > 0 && (isWorkoutActive || isResting)) {
       timerRef.current = setInterval(() => {
         setTimeRemaining((prev) => {
           if (prev <= 1) {
-            playBellSound();
             if (isResting) {
+              // Rest period complete
+              playBellSound();
               setIsResting(false);
               return 0;
-            } else {
+            } else if (isWorkoutActive) {
+              // Timed exercise complete
               handleSetComplete();
               return 0;
             }
@@ -197,9 +241,12 @@ export default function Workout() {
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [isWorkoutActive, timeRemaining, isResting]);
+  }, [timeRemaining > 0, isWorkoutActive, isResting]);
 
   const selectRoutine = async (routine: Routine) => {
     if (!user) return;
