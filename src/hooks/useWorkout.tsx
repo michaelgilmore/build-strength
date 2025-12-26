@@ -11,6 +11,7 @@ interface Exercise {
   duration_seconds: number;
   rest_seconds: number;
   reps: number;
+  muscles?: string[];
 }
 
 interface RoutineDay {

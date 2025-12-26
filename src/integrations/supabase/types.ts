@@ -21,6 +21,7 @@ export type Database = {
           duration_seconds: number | null
           id: string
           image_url: string | null
+          muscles: string[] | null
           name: string
           reps: number
           rest_seconds: number | null
@@ -37,6 +38,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           image_url?: string | null
+          muscles?: string[] | null
           name: string
           reps?: number
           rest_seconds?: number | null
@@ -53,6 +55,7 @@ export type Database = {
           duration_seconds?: number | null
           id?: string
           image_url?: string | null
+          muscles?: string[] | null
           name?: string
           reps?: number
           rest_seconds?: number | null
