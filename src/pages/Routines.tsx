@@ -479,9 +479,21 @@ export default function Routines() {
                   <div className="h-full flex flex-col py-4 px-4 max-w-lg mx-auto safe-area-bottom">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-display">Select Exercises</h3>
-                      <Button variant="ghost" onClick={() => setShowExercisePicker(false)}>
-                        Cancel
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        {exercises.length > 0 && (
+                          <Button
+                            variant="fire"
+                            size="sm"
+                            disabled={selectedExerciseIds.length === 0}
+                            onClick={() => addExercisesToDay(selectedExerciseIds)}
+                          >
+                            Add{selectedExerciseIds.length > 0 ? ` (${selectedExerciseIds.length})` : ''}
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setShowExercisePicker(false)}>
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
 
                     {selectedExerciseIds.length > 0 && (
@@ -527,19 +539,6 @@ export default function Routines() {
                         </p>
                       )}
                     </div>
-
-                    {exercises.length > 0 && (
-                      <div className="pt-4 border-t border-border bg-background sticky bottom-0">
-                        <Button
-                          variant="fire"
-                          className="w-full"
-                          disabled={selectedExerciseIds.length === 0}
-                          onClick={() => addExercisesToDay(selectedExerciseIds)}
-                        >
-                          Add {selectedExerciseIds.length > 0 ? `${selectedExerciseIds.length} ` : ''}Exercise{selectedExerciseIds.length !== 1 ? 's' : ''}
-                        </Button>
-                      </div>
-                    )}
                   </div>
                 </motion.div>
               )}
