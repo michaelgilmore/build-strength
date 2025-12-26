@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Check, ThumbsUp, ThumbsDown, SkipForward, Loader2, Calendar } from 'lucide-react';
+import { Play, Pause, Check, ThumbsUp, ThumbsDown, SkipForward, Loader2, Calendar, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -70,8 +70,11 @@ export default function Workout() {
   const [availableRoutines, setAvailableRoutines] = useState<Routine[]>([]);
   const [workoutComplete, setWorkoutComplete] = useState(false);
   const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
+  const [isEditingWeight, setIsEditingWeight] = useState(false);
+  const [editedWeight, setEditedWeight] = useState('');
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const weightInputRef = useRef<HTMLInputElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { formatWeight } = useWeightUnit();
@@ -284,6 +287,42 @@ export default function Workout() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const openWeightEditor = () => {
+    if (!currentExercise) return;
+    setEditedWeight(currentExercise.current_weight.toString());
+    setIsEditingWeight(true);
+    setTimeout(() => weightInputRef.current?.focus(), 50);
+  };
+
+  const saveWeight = async () => {
+    if (!currentExercise || !user) return;
+    
+    const newWeight = parseFloat(editedWeight);
+    if (isNaN(newWeight) || newWeight < 0) {
+      toast({ title: 'Invalid weight', variant: 'destructive' });
+      return;
+    }
+
+    const { error } = await supabase
+      .from('exercises')
+      .update({ current_weight: newWeight })
+      .eq('id', currentExercise.id);
+
+    if (error) {
+      toast({ title: 'Failed to update weight', variant: 'destructive' });
+      return;
+    }
+
+    // Update local state
+    setTodaysExercises(prev => prev.map(rd => 
+      rd.exercise.id === currentExercise.id 
+        ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeight } }
+        : rd
+    ));
+    setIsEditingWeight(false);
+    toast({ title: 'Weight updated' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -485,7 +524,31 @@ export default function Workout() {
                 )}
 
                 <div className="flex items-center justify-center gap-3 text-xl text-muted-foreground mb-4">
-                  <span className="font-bold text-primary">{currentExercise ? formatWeight(currentExercise.current_weight) : ''}</span>
+                  {isEditingWeight ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        ref={weightInputRef}
+                        type="number"
+                        value={editedWeight}
+                        onChange={(e) => setEditedWeight(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveWeight();
+                          if (e.key === 'Escape') setIsEditingWeight(false);
+                        }}
+                        className="w-20 px-2 py-1 text-center font-bold text-primary bg-background border border-border rounded"
+                      />
+                      <Button size="sm" variant="fire" onClick={saveWeight}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setIsEditingWeight(false)}>Cancel</Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={openWeightEditor}
+                      className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      {currentExercise ? formatWeight(currentExercise.current_weight) : ''}
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                  )}
                   <Button
                     variant="outline"
                     size="icon"
