@@ -639,6 +639,33 @@ export default function Workout() {
                 <div className="text-7xl font-display text-primary workout-timer mb-4">
                   {formatTime(timeRemaining)}
                 </div>
+                
+                {/* Next Set Preview */}
+                <div className="mb-4 p-4 rounded-lg bg-secondary/50">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">NEXT SET</h3>
+                  {currentSet <= (currentExercise?.sets || 0) ? (
+                    // Next set is same exercise
+                    <div className="text-lg">
+                      <span className="font-display text-foreground">{currentExercise?.name}</span>
+                      <span className="text-muted-foreground"> • Set {currentSet}</span>
+                      <div className="text-primary font-bold">
+                        {currentExercise && formatWeight(currentExercise.current_weight)} × {currentReps} reps
+                      </div>
+                    </div>
+                  ) : todaysExercises[currentExerciseIndex + 1] ? (
+                    // Next set is first set of next exercise
+                    <div className="text-lg">
+                      <span className="font-display text-foreground">{todaysExercises[currentExerciseIndex + 1].exercise.name}</span>
+                      <span className="text-muted-foreground"> • Set 1</span>
+                      <div className="text-primary font-bold">
+                        {formatWeight(todaysExercises[currentExerciseIndex + 1].exercise.current_weight)} × {todaysExercises[currentExerciseIndex + 1].exercise.reps} reps
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-lg text-success font-display">Final set complete!</div>
+                  )}
+                </div>
+                
                 <Button variant="outline" onClick={skipRest}>
                   <SkipForward className="w-5 h-5 mr-2" />
                   Skip Rest
