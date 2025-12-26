@@ -216,6 +216,19 @@ export default function Workout() {
     fetchLastReps();
   }, [fetchLastReps]);
 
+  // Pause/resume audio when musicEnabled changes
+  useEffect(() => {
+    if (audioRef.current) {
+      if (musicEnabled) {
+        audioRef.current.play().catch(err => {
+          console.log('Audio resume blocked:', err);
+        });
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [musicEnabled]);
+
   const selectRoutine = async (routine: Routine) => {
     if (!user) return;
 
