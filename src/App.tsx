@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Exercises from "./pages/Exercises";
 import Routines from "./pages/Routines";
 import Analytics from "./pages/Analytics";
+import WorkoutLog from "./pages/WorkoutLog";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/exercises" element={<Exercises />} />
               <Route path="/routines" element={<Routines />} />
               <Route path="/analytics" element={<Analytics />} />
+              <Route path="/workout-log" element={<WorkoutLog />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
