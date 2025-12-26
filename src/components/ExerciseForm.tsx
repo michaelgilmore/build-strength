@@ -33,15 +33,24 @@ export default function ExerciseForm({
   onCancel,
   isEditing = false,
 }: ExerciseFormProps) {
-  const { unit, formatWeight } = useWeightUnit();
+  const { unit, formatWeight, convertWeight, convertToKg } = useWeightUnit();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  
+  // Form stores weights in user's preferred unit for display
   const [formData, setFormData] = useState<ExerciseFormData>({
     name: initialData?.name || '',
-    starting_weight: initialData?.starting_weight || 20,
-    current_weight: initialData?.current_weight || 20,
+    // Convert from kg (stored) to user's unit for display
+    starting_weight: initialData?.starting_weight !== undefined 
+      ? convertWeight(initialData.starting_weight) 
+      : 20,
+    current_weight: initialData?.current_weight !== undefined 
+      ? convertWeight(initialData.current_weight) 
+      : 20,
     sets: initialData?.sets || 3,
-    weight_increment: initialData?.weight_increment || 2.5,
+    weight_increment: initialData?.weight_increment !== undefined 
+      ? convertWeight(initialData.weight_increment) 
+      : 2.5,
     workout_type: initialData?.workout_type || 'manual',
     duration_seconds: initialData?.duration_seconds || 60,
     rest_seconds: initialData?.rest_seconds || 90,
@@ -66,7 +75,14 @@ export default function ExerciseForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-    onSubmit(formData);
+    
+    // Convert weights from user's unit back to kg for storage
+    onSubmit({
+      ...formData,
+      starting_weight: convertToKg(formData.starting_weight),
+      current_weight: convertToKg(formData.current_weight),
+      weight_increment: convertToKg(formData.weight_increment),
+    });
   };
 
   return (
