@@ -81,7 +81,7 @@ export default function Workout() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatWeight } = useWeightUnit();
+  const { formatWeight, convertWeight, unit } = useWeightUnit();
   const navigate = useNavigate();
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
@@ -322,7 +322,8 @@ export default function Workout() {
 
   const openWeightEditor = () => {
     if (!currentExercise) return;
-    setEditedWeight(currentExercise.current_weight.toString());
+    // Show weight in user's preferred unit
+    setEditedWeight(convertWeight(currentExercise.current_weight).toString());
     setIsEditingWeight(true);
     setTimeout(() => weightInputRef.current?.focus(), 50);
   };
@@ -330,15 +331,19 @@ export default function Workout() {
   const saveWeight = async () => {
     if (!currentExercise || !user) return;
     
-    const newWeight = parseFloat(editedWeight);
-    if (isNaN(newWeight) || newWeight < 0) {
+    const inputWeight = parseFloat(editedWeight);
+    if (isNaN(inputWeight) || inputWeight < 0) {
       toast({ title: 'Invalid weight', variant: 'destructive' });
       return;
     }
 
+    // Convert from user's unit back to kg for storage
+    const LBS_TO_KG = 0.453592;
+    const newWeightKg = unit === 'lbs' ? Math.round(inputWeight * LBS_TO_KG * 10) / 10 : inputWeight;
+
     const { error } = await supabase
       .from('exercises')
-      .update({ current_weight: newWeight })
+      .update({ current_weight: newWeightKg })
       .eq('id', currentExercise.id);
 
     if (error) {
@@ -349,7 +354,7 @@ export default function Workout() {
     // Update local state
     setTodaysExercises(prev => prev.map(rd => 
       rd.exercise.id === currentExercise.id 
-        ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeight } }
+        ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeightKg } }
         : rd
     ));
     setIsEditingWeight(false);
