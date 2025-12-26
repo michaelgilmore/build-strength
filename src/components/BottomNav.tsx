@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { Dumbbell, Plus, Calendar, ClipboardList, Settings, Activity } from 'lucide-react';
+import { Dumbbell, Plus, Calendar, Activity, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -7,7 +7,7 @@ const navItems = [
   { to: '/muscles', icon: Activity, label: 'Muscles' },
   { to: '/exercises', icon: Plus, label: 'Exercises' },
   { to: '/routines', icon: Calendar, label: 'Routines' },
-  { to: '/settings', icon: Settings, label: 'Settings' },
+  { to: '/analytics', icon: ClipboardList, label: 'Log' },
 ];
 
 export default function BottomNav() {
