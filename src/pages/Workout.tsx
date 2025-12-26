@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil } from 'lucide-react';
+import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil, Volume2, VolumeX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
 import { useWorkout } from '@/hooks/useWorkout';
+import { useWorkoutMusic } from '@/hooks/useWorkoutMusic';
 import { supabase } from '@/integrations/supabase/client';
 import { DAYS_OF_WEEK } from '@/lib/exercises';
 import { cn } from '@/lib/utils';
@@ -43,6 +44,7 @@ export default function Workout() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { formatWeight, convertWeight, convertToLbs } = useWeightUnit();
+  const { musicEnabled, toggleMusic } = useWorkoutMusic();
   const navigate = useNavigate();
   
   const {
@@ -234,7 +236,7 @@ export default function Workout() {
     setWorkoutStarted(true);
     activateWorkout();
     
-    if (todaysAudioUrl) {
+    if (todaysAudioUrl && musicEnabled) {
       try {
         const audio = new Audio(todaysAudioUrl);
         audio.loop = true;
@@ -572,10 +574,23 @@ export default function Workout() {
             </div>
 
             {todaysAudioUrl && (
-              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                Audio will play when you start
-              </p>
+              <button 
+                onClick={toggleMusic}
+                className="text-sm text-muted-foreground flex items-center justify-center gap-2 hover:text-foreground transition-colors"
+              >
+                {musicEnabled ? (
+                  <>
+                    <Volume2 className="w-4 h-4 text-green-500" />
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    Audio will play when you start
+                  </>
+                ) : (
+                  <>
+                    <VolumeX className="w-4 h-4 text-muted-foreground" />
+                    Audio is muted
+                  </>
+                )}
+              </button>
             )}
 
             <Button

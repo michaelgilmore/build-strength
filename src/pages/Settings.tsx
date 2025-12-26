@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Eye, EyeOff, Shield, Music } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -9,12 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
+import { useWorkoutMusic } from '@/hooks/useWorkoutMusic';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Settings() {
   const { unit, setUnit } = useWeightUnit();
+  const { musicEnabled, setMusicEnabled } = useWorkoutMusic();
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -149,7 +151,7 @@ export default function Settings() {
               <h2 className="font-display text-lg text-foreground">Preferences</h2>
             </div>
 
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 border-b border-border">
               <div className="space-y-0.5">
                 <Label htmlFor="weight-unit" className="text-base">Weight Unit</Label>
                 <p className="text-sm text-muted-foreground">
@@ -165,6 +167,23 @@ export default function Settings() {
                 />
                 <span className={unit === 'lbs' ? 'text-primary font-medium' : 'text-muted-foreground'}>lbs</span>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between py-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="workout-music" className="text-base flex items-center gap-2">
+                  <Music className="w-4 h-4" />
+                  Workout Music
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {musicEnabled ? 'Music will play during workouts' : 'Music is disabled'}
+                </p>
+              </div>
+              <Switch
+                id="workout-music"
+                checked={musicEnabled}
+                onCheckedChange={setMusicEnabled}
+              />
             </div>
           </div>
 
