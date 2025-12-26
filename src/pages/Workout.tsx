@@ -774,6 +774,27 @@ export default function Workout() {
                   <div className="text-center">
                     <span>Set {currentSet} of {currentExercise?.sets}</span>
                   </div>
+
+                  {/* Audio Toggle */}
+                  {todaysAudioUrl && (
+                    <button 
+                      onClick={toggleMusic}
+                      className="text-sm text-muted-foreground flex items-center justify-center gap-2 hover:text-foreground transition-colors"
+                    >
+                      {musicEnabled ? (
+                        <>
+                          <Volume2 className="w-4 h-4 text-green-500" />
+                          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                          Audio playing
+                        </>
+                      ) : (
+                        <>
+                          <VolumeX className="w-4 h-4 text-muted-foreground" />
+                          Audio muted
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {currentExercise?.workout_type === 'timed' && isWorkoutActive && (
