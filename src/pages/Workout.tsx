@@ -20,6 +20,11 @@ interface Routine {
   user_id: string;
 }
 
+interface ResumePoint {
+  exerciseIndex: number;
+  setNumber: number;
+}
+
 export default function Workout() {
   const [loading, setLoading] = useState(true);
   const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
@@ -30,7 +35,7 @@ export default function Workout() {
   const [editedWeight, setEditedWeight] = useState('');
   const [isEditingReps, setIsEditingReps] = useState(false);
   const [editedReps, setEditedReps] = useState('');
-
+  const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -72,16 +77,19 @@ export default function Workout() {
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
   const today = new Date().getDay();
 
-  const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises) => {
-    if (!user || exercises.length === 0) return false;
+  const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises): Promise<{ completed: boolean; resumePoint: ResumePoint | null }> => {
+    if (!user || exercises.length === 0) return { completed: false, resumePoint: null };
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    for (const routineDay of exercises) {
-      const exercise = routineDay.exercise;
+    let foundIncomplete = false;
+    let resume: ResumePoint | null = null;
+
+    for (let exerciseIdx = 0; exerciseIdx < exercises.length; exerciseIdx++) {
+      const exercise = exercises[exerciseIdx].exercise;
       
       const { data: logs, error } = await supabase
         .from('workout_logs')
@@ -91,17 +99,37 @@ export default function Workout() {
         .gte('completed_at', todayStart.toISOString())
         .lte('completed_at', todayEnd.toISOString());
 
-      if (error || !logs) return false;
+      if (error || !logs) {
+        // No logs for this exercise, resume here at set 1
+        if (!foundIncomplete) {
+          foundIncomplete = true;
+          resume = { exerciseIndex: exerciseIdx, setNumber: 1 };
+        }
+        continue;
+      }
 
       const completedSets = new Set(logs.map(l => l.set_number));
-      for (let i = 1; i <= exercise.sets; i++) {
-        if (!completedSets.has(i)) {
-          return false;
+      
+      // Find first incomplete set for this exercise
+      for (let setNum = 1; setNum <= exercise.sets; setNum++) {
+        if (!completedSets.has(setNum)) {
+          if (!foundIncomplete) {
+            foundIncomplete = true;
+            resume = { exerciseIndex: exerciseIdx, setNumber: setNum };
+          }
+          break;
         }
       }
+      
+      if (foundIncomplete) break;
     }
 
-    return true;
+    // If we didn't find any incomplete work, workout is complete
+    if (!foundIncomplete) {
+      return { completed: true, resumePoint: null };
+    }
+
+    return { completed: false, resumePoint: resume };
   }, [user]);
 
   const fetchActiveRoutine = useCallback(async () => {
@@ -137,8 +165,9 @@ export default function Workout() {
           setTodaysAudioUrl(dayWithAudio.audio_url);
         }
         
-        const completed = await checkIfWorkoutCompletedToday(mappedExercises);
+        const { completed, resumePoint: resume } = await checkIfWorkoutCompletedToday(mappedExercises);
         setAlreadyCompletedToday(completed);
+        setResumePoint(resume);
       } else {
         if (!workoutStarted) {
           setTodaysExercises([]);
@@ -196,6 +225,12 @@ export default function Workout() {
   };
 
   const handleBeginWorkout = () => {
+    // If resuming, set the correct exercise and set
+    if (resumePoint) {
+      setCurrentExerciseIndex(resumePoint.exerciseIndex);
+      setCurrentSet(resumePoint.setNumber);
+    }
+    
     setWorkoutStarted(true);
     activateWorkout();
     
@@ -499,20 +534,41 @@ export default function Workout() {
 
             {/* Exercise Preview */}
             <div className="space-y-2 text-left">
-              {todaysExercises.map((day, idx) => (
-                <div
-                  key={day.id}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
-                >
-                  <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
-                    {idx + 1}
-                  </span>
-                  <span className="font-medium">{day.exercise.name}</span>
-                  <span className="text-sm text-muted-foreground ml-auto">
-                    {formatWeight(day.exercise.current_weight)} × {day.exercise.reps} reps × {day.exercise.sets} sets
-                  </span>
-                </div>
-              ))}
+              {todaysExercises.map((day, idx) => {
+                const isCompleted = resumePoint ? idx < resumePoint.exerciseIndex : false;
+                const isPartial = resumePoint ? idx === resumePoint.exerciseIndex && resumePoint.setNumber > 1 : false;
+                
+                return (
+                  <div
+                    key={day.id}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg",
+                      isCompleted ? "bg-success/20" : isPartial ? "bg-primary/20" : "bg-secondary/50"
+                    )}
+                  >
+                    <span className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold",
+                      isCompleted ? "bg-success text-success-foreground" : "bg-primary/20 text-primary"
+                    )}>
+                      {isCompleted ? <Check className="w-4 h-4" /> : idx + 1}
+                    </span>
+                    <span className="font-medium">{day.exercise.name}</span>
+                    <span className="text-sm text-muted-foreground ml-auto">
+                      {isPartial && (
+                        <span className="text-primary mr-2">
+                          {resumePoint!.setNumber - 1}/{day.exercise.sets} done
+                        </span>
+                      )}
+                      {!isCompleted && !isPartial && (
+                        <>
+                          {formatWeight(day.exercise.current_weight)} × {day.exercise.reps} reps × {day.exercise.sets} sets
+                        </>
+                      )}
+                      {isCompleted && <span className="text-success">Complete</span>}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {todaysAudioUrl && (
@@ -523,13 +579,16 @@ export default function Workout() {
             )}
 
             <Button
-              variant="success"
+              variant={resumePoint ? "fire" : "success"}
               size="xl"
-              className="w-full text-xl py-8 shadow-lg shadow-green-500/25"
+              className={cn(
+                "w-full text-xl py-8",
+                resumePoint ? "shadow-lg shadow-primary/25" : "shadow-lg shadow-green-500/25"
+              )}
               onClick={handleBeginWorkout}
             >
               <Play className="w-8 h-8 mr-2" />
-              Start Workout
+              {resumePoint ? "Continue Workout" : "Start Workout"}
             </Button>
           </motion.div>
         </main>
