@@ -88,6 +88,7 @@ export type Database = {
       }
       routine_days: {
         Row: {
+          audio_url: string | null
           created_at: string
           day_of_week: number
           exercise_id: string
@@ -96,6 +97,7 @@ export type Database = {
           routine_id: string
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           day_of_week: number
           exercise_id: string
@@ -104,6 +106,7 @@ export type Database = {
           routine_id: string
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           day_of_week?: number
           exercise_id?: string

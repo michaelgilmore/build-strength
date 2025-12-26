@@ -30,6 +30,7 @@ interface RoutineDay {
   exercise_order: number;
   exercise_id: string;
   exercise: Exercise;
+  audio_url?: string | null;
 }
 
 interface Routine {
@@ -72,9 +73,12 @@ export default function Workout() {
   const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
   const [isEditingWeight, setIsEditingWeight] = useState(false);
   const [editedWeight, setEditedWeight] = useState('');
+  const [workoutStarted, setWorkoutStarted] = useState(false);
+  const [todaysAudioUrl, setTodaysAudioUrl] = useState<string | null>(null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const { formatWeight } = useWeightUnit();
@@ -143,6 +147,12 @@ export default function Workout() {
         const mappedExercises = days.map((d: any) => ({ ...d, exercise: d.exercises }));
         setTodaysExercises(mappedExercises);
         
+        // Get audio URL for today (use first one if multiple exist)
+        const dayWithAudio = days.find((d: any) => d.audio_url);
+        if (dayWithAudio) {
+          setTodaysAudioUrl(dayWithAudio.audio_url);
+        }
+        
         // Check if workout was already completed today
         const completed = await checkIfWorkoutCompletedToday(mappedExercises);
         setAlreadyCompletedToday(completed);
@@ -200,6 +210,24 @@ export default function Workout() {
 
     setShowRoutineSelector(false);
     fetchActiveRoutine();
+  };
+
+  const handleBeginWorkout = () => {
+    setWorkoutStarted(true);
+    
+    // Play audio if available
+    if (todaysAudioUrl) {
+      try {
+        const audio = new Audio(todaysAudioUrl);
+        audio.loop = true;
+        audioRef.current = audio;
+        audio.play().catch(err => {
+          console.log('Audio autoplay blocked:', err);
+        });
+      } catch (err) {
+        console.log('Failed to play audio:', err);
+      }
+    }
   };
 
   const startWorkout = () => {
@@ -270,6 +298,11 @@ export default function Workout() {
         // Workout complete!
         setIsWorkoutActive(false);
         setWorkoutComplete(true);
+        // Stop audio when workout completes
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
         toast({ title: 'Workout Complete!', description: 'Great job crushing it today!' });
       }
     }
@@ -449,6 +482,67 @@ export default function Workout() {
             </p>
             <Button variant="outline" onClick={() => navigate('/routines')}>
               Edit Routine
+            </Button>
+          </motion.div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // Start Workout Screen (before workout begins)
+  if (!workoutStarted) {
+    return (
+      <div className="min-h-screen pb-20">
+        <Header />
+        <main className="px-4 py-12 max-w-2xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="space-y-8"
+          >
+            <div>
+              <h2 className="text-3xl font-display text-foreground mb-2">
+                {DAYS_OF_WEEK[today]}'s Workout
+              </h2>
+              <p className="text-lg text-muted-foreground">
+                {todaysExercises.length} exercise{todaysExercises.length !== 1 ? 's' : ''} • {activeRoutine?.name}
+              </p>
+            </div>
+
+            {/* Exercise Preview */}
+            <div className="space-y-2 text-left">
+              {todaysExercises.map((day, idx) => (
+                <div
+                  key={day.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50"
+                >
+                  <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-sm font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="font-medium">{day.exercise.name}</span>
+                  <span className="text-sm text-muted-foreground ml-auto">
+                    {formatWeight(day.exercise.current_weight)} × {day.exercise.sets}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {todaysAudioUrl && (
+              <p className="text-sm text-muted-foreground flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Audio will play when you start
+              </p>
+            )}
+
+            <Button
+              variant="success"
+              size="xl"
+              className="w-full text-xl py-8 shadow-lg shadow-green-500/25"
+              onClick={handleBeginWorkout}
+            >
+              <Play className="w-8 h-8 mr-2" />
+              Start Workout
             </Button>
           </motion.div>
         </main>
