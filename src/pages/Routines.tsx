@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Loader2, Calendar, Share2, Trash2, Check, GripVertical } from 'lucide-react';
+import { Plus, Loader2, Calendar, Share2, Trash2, Check, GripVertical, Music, Upload, X } from 'lucide-react';
 import { DndContext, closestCenter, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -37,6 +37,7 @@ interface RoutineDay {
   exercise_order: number;
   exercise_id: string;
   exercise?: Exercise;
+  audio_url?: string | null;
 }
 
 function SortableExerciseItem({ 
@@ -91,6 +92,8 @@ export default function Routines() {
   const [newRoutineName, setNewRoutineName] = useState('');
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -283,6 +286,75 @@ export default function Routines() {
     }
   };
 
+  // Get audio URL for current day (use first routine_day entry that has audio)
+  const currentDayAudio = routineDays.find(d => d.day_of_week === selectedDay && d.audio_url);
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedRoutine || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('audio/')) {
+      toast({ title: 'Invalid file', description: 'Please select an audio file', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingAudio(true);
+
+    try {
+      // Upload to storage
+      const filePath = `${selectedRoutine.id}/${selectedDay}/${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('routine-audio')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('routine-audio')
+        .getPublicUrl(filePath);
+
+      // Update the first routine_day entry for this day with the audio URL
+      const firstDayEntry = routineDays.find(d => d.day_of_week === selectedDay);
+      if (firstDayEntry) {
+        await supabase
+          .from('routine_days')
+          .update({ audio_url: publicUrl })
+          .eq('id', firstDayEntry.id);
+
+        // Update local state
+        setRoutineDays(prev => prev.map(d => 
+          d.id === firstDayEntry.id ? { ...d, audio_url: publicUrl } : d
+        ));
+      }
+
+      toast({ title: 'Audio uploaded', description: `Audio set for ${DAYS_OF_WEEK[selectedDay]}` });
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast({ title: 'Upload failed', description: 'Could not upload audio file', variant: 'destructive' });
+    } finally {
+      setUploadingAudio(false);
+      if (audioInputRef.current) audioInputRef.current.value = '';
+    }
+  };
+
+  const removeAudio = async () => {
+    const entryWithAudio = routineDays.find(d => d.day_of_week === selectedDay && d.audio_url);
+    if (!entryWithAudio) return;
+
+    await supabase
+      .from('routine_days')
+      .update({ audio_url: null })
+      .eq('id', entryWithAudio.id);
+
+    setRoutineDays(prev => prev.map(d => 
+      d.id === entryWithAudio.id ? { ...d, audio_url: null } : d
+    ));
+
+    toast({ title: 'Audio removed' });
+  };
+
   const dayExercises = routineDays
     .filter((d) => d.day_of_week === selectedDay)
     .sort((a, b) => a.exercise_order - b.exercise_order);
@@ -464,6 +536,62 @@ export default function Routines() {
                     </Button>
                   )}
                 </div>
+
+                {/* Audio Section */}
+                {isOwnRoutine && dayExercises.length > 0 && (
+                  <div className="mt-6 p-4 rounded-lg bg-secondary/30 border border-border">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Music className="w-5 h-5 text-primary" />
+                        <span className="font-medium">Workout Audio</span>
+                      </div>
+                      {currentDayAudio?.audio_url ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Audio set</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={removeAudio}
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={uploadingAudio}
+                          onClick={() => audioInputRef.current?.click()}
+                        >
+                          {uploadingAudio ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Upload className="w-4 h-4 mr-2" />
+                          )}
+                          Upload Audio
+                        </Button>
+                      )}
+                    </div>
+                    {currentDayAudio?.audio_url && (
+                      <audio
+                        controls
+                        className="w-full mt-3"
+                        src={currentDayAudio.audio_url}
+                      />
+                    )}
+                    <input
+                      ref={audioInputRef}
+                      type="file"
+                      accept="audio/*"
+                      className="hidden"
+                      onChange={handleAudioUpload}
+                    />
+                    <p className="text-xs text-muted-foreground mt-2">
+                      This audio will auto-play when you start the workout for {DAYS_OF_WEEK[selectedDay]}.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
 
