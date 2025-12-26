@@ -9,30 +9,10 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
+import { useWorkout } from '@/hooks/useWorkout';
 import { supabase } from '@/integrations/supabase/client';
 import { DAYS_OF_WEEK } from '@/lib/exercises';
 import { cn } from '@/lib/utils';
-
-interface Exercise {
-  id: string;
-  name: string;
-  current_weight: number;
-  sets: number;
-  weight_increment: number;
-  workout_type: string;
-  duration_seconds: number;
-  rest_seconds: number;
-  reps: number;
-}
-
-interface RoutineDay {
-  id: string;
-  day_of_week: number;
-  exercise_order: number;
-  exercise_id: string;
-  exercise: Exercise;
-  audio_url?: string | null;
-}
 
 interface Routine {
   id: string;
@@ -40,102 +20,66 @@ interface Routine {
   user_id: string;
 }
 
-// Boxing bell sound using Web Audio API
-function playBellSound() {
-  try {
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Create multiple oscillators for a richer bell sound
-    const frequencies = [800, 1200, 1600];
-    
-    frequencies.forEach((freq, index) => {
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
-      oscillator.frequency.exponentialRampToValueAtTime(freq * 0.5, audioContext.currentTime + 0.8);
-      
-      const volume = 0.3 / (index + 1);
-      gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.8);
-    });
-    
-    // Add a second strike for that classic double-bell boxing sound
-    setTimeout(() => {
-      frequencies.forEach((freq, index) => {
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(freq * 0.5, audioContext.currentTime + 0.8);
-        
-        const volume = 0.3 / (index + 1);
-        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.8);
-        
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.8);
-      });
-    }, 150);
-  } catch (err) {
-    console.log('Failed to play bell sound:', err);
-  }
-}
-
 export default function Workout() {
   const [loading, setLoading] = useState(true);
   const [activeRoutine, setActiveRoutine] = useState<Routine | null>(null);
-  const [todaysExercises, setTodaysExercises] = useState<RoutineDay[]>([]);
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
-  const [currentSet, setCurrentSet] = useState(1);
-  const [isResting, setIsResting] = useState(false);
-  const [isWorkoutActive, setIsWorkoutActive] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(0);
   const [showRoutineSelector, setShowRoutineSelector] = useState(false);
   const [availableRoutines, setAvailableRoutines] = useState<Routine[]>([]);
-  const [workoutComplete, setWorkoutComplete] = useState(false);
   const [alreadyCompletedToday, setAlreadyCompletedToday] = useState(false);
   const [isEditingWeight, setIsEditingWeight] = useState(false);
   const [editedWeight, setEditedWeight] = useState('');
   const [isEditingReps, setIsEditingReps] = useState(false);
   const [editedReps, setEditedReps] = useState('');
-  const [currentReps, setCurrentReps] = useState<number>(10);
-  const [workoutStarted, setWorkoutStarted] = useState(false);
-  const [todaysAudioUrl, setTodaysAudioUrl] = useState<string | null>(null);
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatWeight, convertWeight, convertToLbs, unit } = useWeightUnit();
+  const { formatWeight, convertWeight, convertToLbs } = useWeightUnit();
   const navigate = useNavigate();
+  
+  const {
+    state: workoutState,
+    setWorkoutStarted,
+    setCurrentExerciseIndex,
+    setCurrentSet,
+    setIsResting,
+    setIsWorkoutActive,
+    setTimeRemaining,
+    setWorkoutComplete,
+    setTodaysExercises,
+    setCurrentReps,
+    setTodaysAudioUrl,
+    skipRest,
+    activateWorkout,
+  } = useWorkout();
+
+  const {
+    workoutStarted,
+    currentExerciseIndex,
+    currentSet,
+    isResting,
+    isWorkoutActive,
+    timeRemaining,
+    workoutComplete,
+    todaysExercises,
+    currentReps,
+    todaysAudioUrl,
+  } = workoutState;
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
   const today = new Date().getDay();
 
-  const checkIfWorkoutCompletedToday = useCallback(async (exercises: RoutineDay[]) => {
+  const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises) => {
     if (!user || exercises.length === 0) return false;
 
-    // Get today's date range (start and end of day)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // For each exercise, check if all sets have been logged today
     for (const routineDay of exercises) {
       const exercise = routineDay.exercise;
       
@@ -149,7 +93,6 @@ export default function Workout() {
 
       if (error || !logs) return false;
 
-      // Check if all sets are completed for this exercise
       const completedSets = new Set(logs.map(l => l.set_number));
       for (let i = 1; i <= exercise.sets; i++) {
         if (!completedSets.has(i)) {
@@ -174,7 +117,6 @@ export default function Workout() {
     if (routine) {
       setActiveRoutine(routine);
 
-      // Fetch today's exercises
       const { data: days } = await supabase
         .from('routine_days')
         .select('*, exercises(*)')
@@ -184,22 +126,25 @@ export default function Workout() {
 
       if (days && days.length > 0) {
         const mappedExercises = days.map((d: any) => ({ ...d, exercise: d.exercises }));
-        setTodaysExercises(mappedExercises);
         
-        // Get audio URL for today (use first one if multiple exist)
+        // Only update exercises if not already in an active workout
+        if (!workoutStarted) {
+          setTodaysExercises(mappedExercises);
+        }
+        
         const dayWithAudio = days.find((d: any) => d.audio_url);
-        if (dayWithAudio) {
+        if (dayWithAudio && !workoutStarted) {
           setTodaysAudioUrl(dayWithAudio.audio_url);
         }
         
-        // Check if workout was already completed today
         const completed = await checkIfWorkoutCompletedToday(mappedExercises);
         setAlreadyCompletedToday(completed);
       } else {
-        setTodaysExercises([]);
+        if (!workoutStarted) {
+          setTodaysExercises([]);
+        }
       }
     } else {
-      // No active routine, show selector
       const { data: routines } = await supabase
         .from('routines')
         .select('*')
@@ -210,7 +155,7 @@ export default function Workout() {
     }
 
     setLoading(false);
-  }, [user, today, checkIfWorkoutCompletedToday]);
+  }, [user, today, checkIfWorkoutCompletedToday, workoutStarted, setTodaysExercises, setTodaysAudioUrl]);
 
   useEffect(() => {
     fetchActiveRoutine();
@@ -220,7 +165,6 @@ export default function Workout() {
   const fetchLastReps = useCallback(async () => {
     if (!user || !currentExercise) return;
     
-    // Get the most recent workout log for this exercise
     const { data: lastLog } = await supabase
       .from('workout_logs')
       .select('reps')
@@ -233,56 +177,17 @@ export default function Workout() {
     if (lastLog?.reps) {
       setCurrentReps(lastLog.reps);
     } else {
-      // Fall back to exercise default
       setCurrentReps(currentExercise.reps);
     }
-  }, [user, currentExercise]);
+  }, [user, currentExercise, setCurrentReps]);
 
   useEffect(() => {
     fetchLastReps();
   }, [fetchLastReps]);
 
-  // Timer effect for both workout and rest periods
-  useEffect(() => {
-    // Clear any existing timer
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    // Start timer if we have time remaining (either for timed exercise or rest)
-    if (timeRemaining > 0 && (isWorkoutActive || isResting)) {
-      timerRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            if (isResting) {
-              // Rest period complete
-              playBellSound();
-              setIsResting(false);
-              return 0;
-            } else if (isWorkoutActive) {
-              // Timed exercise complete
-              handleSetComplete();
-              return 0;
-            }
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, [timeRemaining > 0, isWorkoutActive, isResting]);
-
   const selectRoutine = async (routine: Routine) => {
     if (!user) return;
 
-    // Deactivate all, activate selected
     await supabase.from('routines').update({ is_active: false }).eq('user_id', user.id);
     await supabase.from('routines').update({ is_active: true }).eq('id', routine.id);
 
@@ -292,8 +197,8 @@ export default function Workout() {
 
   const handleBeginWorkout = () => {
     setWorkoutStarted(true);
+    activateWorkout();
     
-    // Play audio if available
     if (todaysAudioUrl) {
       try {
         const audio = new Audio(todaysAudioUrl);
@@ -319,13 +224,11 @@ export default function Workout() {
 
   const pauseWorkout = () => {
     setIsWorkoutActive(false);
-    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const handleSetComplete = async (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
     if (!currentExercise || !user) return;
 
-    // Log the set to database with reps
     const { error } = await supabase.from('workout_logs').insert({
       user_id: user.id,
       exercise_id: currentExercise.id,
@@ -342,7 +245,6 @@ export default function Workout() {
       toast({ title: 'Error', description: 'Failed to save workout data', variant: 'destructive' });
     }
 
-    // Adjust weight based on feedback
     if (feedback === 'too_easy') {
       const newWeight = currentExercise.current_weight + currentExercise.weight_increment;
       await supabase
@@ -359,25 +261,19 @@ export default function Workout() {
       toast({ title: 'Weight Decreased', description: `Next time: ${formatWeight(newWeight)}` });
     }
 
-    playBellSound();
-
     // Move to next set or exercise
     if (currentSet < currentExercise.sets) {
       setCurrentSet(currentSet + 1);
-      setIsResting(true);
-      setTimeRemaining(currentExercise.rest_seconds);
+      setIsResting(true, currentExercise.rest_seconds);
     } else {
-      // Move to next exercise
       if (currentExerciseIndex < todaysExercises.length - 1) {
         setCurrentExerciseIndex(currentExerciseIndex + 1);
         setCurrentSet(1);
         setIsWorkoutActive(false);
         toast({ title: 'Next Exercise', description: todaysExercises[currentExerciseIndex + 1].exercise.name });
       } else {
-        // Workout complete!
         setIsWorkoutActive(false);
         setWorkoutComplete(true);
-        // Stop audio when workout completes
         if (audioRef.current) {
           audioRef.current.pause();
           audioRef.current = null;
@@ -385,12 +281,6 @@ export default function Workout() {
         toast({ title: 'Workout Complete!', description: 'Great job crushing it today!' });
       }
     }
-  };
-
-  const skipRest = () => {
-    setIsResting(false);
-    setTimeRemaining(0);
-    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   const formatTime = (seconds: number) => {
@@ -401,7 +291,6 @@ export default function Workout() {
 
   const openWeightEditor = () => {
     if (!currentExercise) return;
-    // Show weight in user's preferred unit
     setEditedWeight(convertWeight(currentExercise.current_weight).toString());
     setIsEditingWeight(true);
     setTimeout(() => weightInputRef.current?.focus(), 50);
@@ -416,7 +305,6 @@ export default function Workout() {
       return;
     }
 
-    // Convert from user's unit to lbs for storage
     const newWeightLbs = convertToLbs(inputWeight);
 
     const { error } = await supabase
@@ -429,8 +317,7 @@ export default function Workout() {
       return;
     }
 
-    // Update local state
-    setTodaysExercises(prev => prev.map(rd => 
+    setTodaysExercises(todaysExercises.map(rd => 
       rd.exercise.id === currentExercise.id 
         ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeightLbs } }
         : rd
@@ -508,7 +395,7 @@ export default function Workout() {
   }
 
   // Already completed today's workout
-  if (alreadyCompletedToday) {
+  if (alreadyCompletedToday && !workoutStarted) {
     return (
       <div className="min-h-screen pb-20">
         <Header />
