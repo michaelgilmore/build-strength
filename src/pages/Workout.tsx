@@ -678,9 +678,14 @@ export default function Workout() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <h2 className="text-3xl font-display text-gradient-fire mb-2">
+                <h2 className="text-3xl font-display text-gradient-fire mb-1">
                   {currentExercise?.name}
                 </h2>
+                {currentExercise?.muscles && currentExercise.muscles.length > 0 && (
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {currentExercise.muscles.join(' • ')}
+                  </p>
+                )}
 
                 {/* Exercise Animation */}
                 {currentExercise && (
