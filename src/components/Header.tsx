@@ -1,6 +1,7 @@
-import { Dumbbell, LogOut } from "lucide-react";
+import { Dumbbell, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   title?: string;
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 export default function Header({ title = "Muscle Forge" }: HeaderProps) {
   const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-lg border-b border-border">
@@ -18,9 +20,14 @@ export default function Header({ title = "Muscle Forge" }: HeaderProps) {
           </div>
           <h1 className="text-xl font-display text-gradient-fire">{title}</h1>
         </div>
-        <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground hover:text-foreground">
-          <LogOut className="w-5 h-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" onClick={() => navigate('/settings')} className="text-muted-foreground hover:text-foreground">
+            <Settings className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={signOut} className="text-muted-foreground hover:text-foreground">
+            <LogOut className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
     </header>
   );
