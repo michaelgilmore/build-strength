@@ -476,7 +476,7 @@ export default function Routines() {
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm"
                 >
-                  <div className="h-full flex flex-col py-4 px-4 max-w-lg mx-auto">
+                  <div className="h-full flex flex-col py-4 px-4 max-w-lg mx-auto safe-area-bottom">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-xl font-display">Select Exercises</h3>
                       <Button variant="ghost" onClick={() => setShowExercisePicker(false)}>
@@ -490,7 +490,7 @@ export default function Routines() {
                       </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto space-y-2">
+                    <div className="flex-1 overflow-y-auto space-y-2 pb-4">
                       {exercises.map((ex) => {
                         const isSelected = selectedExerciseIds.includes(ex.id);
                         return (
@@ -529,7 +529,7 @@ export default function Routines() {
                     </div>
 
                     {exercises.length > 0 && (
-                      <div className="pt-4 border-t border-border mt-4">
+                      <div className="pt-4 border-t border-border bg-background sticky bottom-0">
                         <Button
                           variant="fire"
                           className="w-full"
