@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Check, ThumbsUp, ThumbsDown, SkipForward, Loader2, Calendar, Pencil } from 'lucide-react';
+import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -723,25 +723,8 @@ export default function Workout() {
                     )}
                   </div>
                   
-                  {/* Feedback and Set Info Row */}
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={() => handleSetComplete('too_hard')}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 border-success text-success hover:bg-success hover:text-success-foreground"
-                      onClick={() => handleSetComplete('too_easy')}
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                    </Button>
-                    <span>•</span>
+                  {/* Set Info */}
+                  <div className="text-center">
                     <span>Set {currentSet} of {currentExercise?.sets}</span>
                   </div>
                 </div>
