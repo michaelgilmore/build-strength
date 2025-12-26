@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Lock, Eye, EyeOff } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import { Switch } from '@/components/ui/switch';
@@ -16,6 +17,7 @@ export default function Settings() {
   const { unit, setUnit } = useWeightUnit();
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -24,6 +26,22 @@ export default function Settings() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase.rpc('has_role', { 
+        _user_id: user.id, 
+        _role: 'admin' 
+      });
+      
+      setIsAdmin(!!data);
+    };
+    
+    checkAdmin();
+  }, [user]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,6 +125,24 @@ export default function Settings() {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-6"
         >
+          {isAdmin && (
+            <div className="card-intense p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg text-foreground">Admin</h2>
+              </div>
+
+              <Button 
+                variant="fire" 
+                className="w-full"
+                onClick={() => navigate('/admin')}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                Open Admin Panel
+              </Button>
+            </div>
+          )}
+
           <div className="card-intense p-4">
             <div className="flex items-center gap-3 mb-4">
               <SettingsIcon className="w-5 h-5 text-primary" />
