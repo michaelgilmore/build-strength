@@ -90,6 +90,7 @@ export default function Routines() {
   const [showNewRoutine, setShowNewRoutine] = useState(false);
   const [newRoutineName, setNewRoutineName] = useState('');
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [selectedExerciseIds, setSelectedExerciseIds] = useState<string[]>([]);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -210,24 +211,44 @@ export default function Routines() {
     }
   };
 
-  const addExerciseToDay = async (exerciseId: string) => {
-    if (!selectedRoutine) return;
+  const addExercisesToDay = async (exerciseIds: string[]) => {
+    if (!selectedRoutine || exerciseIds.length === 0) return;
 
-    const maxOrder = routineDays
+    let maxOrder = routineDays
       .filter((d) => d.day_of_week === selectedDay)
       .reduce((max, d) => Math.max(max, d.exercise_order), -1);
 
-    const { error } = await supabase.from('routine_days').insert({
+    const inserts = exerciseIds.map((exerciseId, index) => ({
       routine_id: selectedRoutine.id,
       day_of_week: selectedDay,
       exercise_id: exerciseId,
-      exercise_order: maxOrder + 1,
-    });
+      exercise_order: maxOrder + 1 + index,
+    }));
+
+    const { error } = await supabase.from('routine_days').insert(inserts);
 
     if (!error) {
       fetchRoutineDays(selectedRoutine.id);
       setShowExercisePicker(false);
+      setSelectedExerciseIds([]);
+      toast({
+        title: 'Exercises Added',
+        description: `Added ${exerciseIds.length} exercise${exerciseIds.length > 1 ? 's' : ''} to ${DAYS_OF_WEEK[selectedDay]}.`,
+      });
     }
+  };
+
+  const toggleExerciseSelection = (exerciseId: string) => {
+    setSelectedExerciseIds((prev) =>
+      prev.includes(exerciseId)
+        ? prev.filter((id) => id !== exerciseId)
+        : [...prev, exerciseId]
+    );
+  };
+
+  const openExercisePicker = () => {
+    setSelectedExerciseIds([]);
+    setShowExercisePicker(true);
   };
 
   const removeExerciseFromDay = async (id: string) => {
@@ -436,10 +457,10 @@ export default function Routines() {
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => setShowExercisePicker(true)}
+                      onClick={openExercisePicker}
                     >
                       <Plus className="w-4 h-4 mr-2" />
-                      Add Exercise
+                      Add Exercises
                     </Button>
                   )}
                 </div>
@@ -455,32 +476,70 @@ export default function Routines() {
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm"
                 >
-                  <div className="h-full overflow-y-auto py-4 px-4 max-w-lg mx-auto">
+                  <div className="h-full flex flex-col py-4 px-4 max-w-lg mx-auto">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-display">Select Exercise</h3>
+                      <h3 className="text-xl font-display">Select Exercises</h3>
                       <Button variant="ghost" onClick={() => setShowExercisePicker(false)}>
                         Cancel
                       </Button>
                     </div>
-                    <div className="space-y-2">
-                      {exercises.map((ex) => (
-                        <button
-                          key={ex.id}
-                          onClick={() => addExerciseToDay(ex.id)}
-                          className="w-full text-left p-4 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors"
-                        >
-                          <span className="font-medium">{ex.name}</span>
-                          <span className="text-sm text-muted-foreground ml-2">
-                            {ex.current_weight}kg × {ex.sets} sets
-                          </span>
-                        </button>
-                      ))}
+
+                    {selectedExerciseIds.length > 0 && (
+                      <div className="mb-3 text-sm text-muted-foreground">
+                        {selectedExerciseIds.length} exercise{selectedExerciseIds.length > 1 ? 's' : ''} selected
+                      </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto space-y-2">
+                      {exercises.map((ex) => {
+                        const isSelected = selectedExerciseIds.includes(ex.id);
+                        return (
+                          <button
+                            key={ex.id}
+                            onClick={() => toggleExerciseSelection(ex.id)}
+                            className={cn(
+                              "w-full text-left p-4 rounded-lg transition-colors flex items-center gap-3",
+                              isSelected
+                                ? "bg-primary/20 ring-2 ring-primary"
+                                : "bg-secondary hover:bg-secondary/80"
+                            )}
+                          >
+                            <div className={cn(
+                              "w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0",
+                              isSelected
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground"
+                            )}>
+                              {isSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                            </div>
+                            <div className="flex-1">
+                              <span className="font-medium">{ex.name}</span>
+                              <span className="text-sm text-muted-foreground ml-2">
+                                {ex.current_weight}kg × {ex.sets} sets
+                              </span>
+                            </div>
+                          </button>
+                        );
+                      })}
                       {exercises.length === 0 && (
                         <p className="text-center text-muted-foreground py-8">
                           No exercises yet. Add some in the Exercises tab.
                         </p>
                       )}
                     </div>
+
+                    {exercises.length > 0 && (
+                      <div className="pt-4 border-t border-border mt-4">
+                        <Button
+                          variant="fire"
+                          className="w-full"
+                          disabled={selectedExerciseIds.length === 0}
+                          onClick={() => addExercisesToDay(selectedExerciseIds)}
+                        >
+                          Add {selectedExerciseIds.length > 0 ? `${selectedExerciseIds.length} ` : ''}Exercise{selectedExerciseIds.length !== 1 ? 's' : ''}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
