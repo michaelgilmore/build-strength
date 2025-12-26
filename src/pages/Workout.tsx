@@ -81,7 +81,7 @@ export default function Workout() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatWeight, convertWeight, unit } = useWeightUnit();
+  const { formatWeight, convertWeight, convertToKg, unit } = useWeightUnit();
   const navigate = useNavigate();
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
@@ -338,8 +338,7 @@ export default function Workout() {
     }
 
     // Convert from user's unit back to kg for storage
-    const LBS_TO_KG = 0.453592;
-    const newWeightKg = unit === 'lbs' ? Math.round(inputWeight * LBS_TO_KG * 10) / 10 : inputWeight;
+    const newWeightKg = convertToKg(inputWeight);
 
     const { error } = await supabase
       .from('exercises')

@@ -6,12 +6,14 @@ interface WeightUnitContextType {
   unit: WeightUnit;
   setUnit: (unit: WeightUnit) => void;
   convertWeight: (weightInKg: number) => number;
+  convertToKg: (weightInUserUnit: number) => number;
   formatWeight: (weightInKg: number) => string;
 }
 
 const WeightUnitContext = createContext<WeightUnitContextType | undefined>(undefined);
 
 const KG_TO_LBS = 2.20462;
+const LBS_TO_KG = 0.453592;
 
 export function WeightUnitProvider({ children }: { children: ReactNode }) {
   const [unit, setUnitState] = useState<WeightUnit>(() => {
@@ -31,13 +33,20 @@ export function WeightUnitProvider({ children }: { children: ReactNode }) {
     return weightInKg;
   };
 
+  const convertToKg = (weightInUserUnit: number): number => {
+    if (unit === 'lbs') {
+      return Math.round(weightInUserUnit * LBS_TO_KG * 10) / 10;
+    }
+    return weightInUserUnit;
+  };
+
   const formatWeight = (weightInKg: number): string => {
     const converted = convertWeight(weightInKg);
     return `${converted}${unit}`;
   };
 
   return (
-    <WeightUnitContext.Provider value={{ unit, setUnit, convertWeight, formatWeight }}>
+    <WeightUnitContext.Provider value={{ unit, setUnit, convertWeight, convertToKg, formatWeight }}>
       {children}
     </WeightUnitContext.Provider>
   );
