@@ -114,8 +114,6 @@ export default function Analytics() {
   const filteredLogs = getFilteredLogs();
   const totalWorkouts = [...new Set(filteredLogs.map((l) => new Date(l.completed_at).toDateString()))].length;
   const totalVolume = convertWeight(filteredLogs.reduce((acc, l) => acc + l.weight_used, 0));
-  const tooEasyCount = filteredLogs.filter((l) => l.difficulty_feedback === 'too_easy').length;
-  const tooHardCount = filteredLogs.filter((l) => l.difficulty_feedback === 'too_hard').length;
 
   // Personal bests
   const personalBests = exercises.map((ex) => {
@@ -196,27 +194,6 @@ export default function Analytics() {
                 <div className="text-sm text-muted-foreground">Total Volume</div>
               </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="card-intense p-4"
-              >
-                <TrendingUp className="w-5 h-5 text-success mb-2" />
-                <div className="text-2xl font-display text-foreground">{tooEasyCount}</div>
-                <div className="text-sm text-muted-foreground">Weight Increases</div>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="card-intense p-4"
-              >
-                <TrendingUp className="w-5 h-5 text-destructive mb-2 rotate-180" />
-                <div className="text-2xl font-display text-foreground">{tooHardCount}</div>
-                <div className="text-sm text-muted-foreground">Weight Decreases</div>
-              </motion.div>
             </div>
 
             {/* Exercise Selector */}
