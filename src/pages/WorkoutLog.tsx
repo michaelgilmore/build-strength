@@ -423,8 +423,8 @@ export default function WorkoutLog() {
               >
                 <Dumbbell className="w-5 h-5 text-primary mb-2" />
                 <div className="text-2xl font-display text-foreground">
-                  {(convertWeight(summaryStats.totalVolume) / 1000).toFixed(1)}
-                  <span className="text-sm">{unit === 'kg' ? 't' : 'klbs'}</span>
+                  {convertWeight(summaryStats.totalVolume).toLocaleString()}
+                  <span className="text-sm">{unit === 'kg' ? 'kg' : 'lbs'}</span>
                 </div>
                 <div className="text-sm text-muted-foreground">Volume</div>
               </motion.div>

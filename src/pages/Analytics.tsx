@@ -124,7 +124,7 @@ export default function Analytics() {
     return { name: ex, weight: maxWeight };
   }).sort((a, b) => b.weight - a.weight).slice(0, 5);
 
-  const volumeUnit = unit === 'kg' ? 't' : 'klbs';
+  const volumeUnit = unit === 'kg' ? 'kg' : 'lbs';
 
   if (loading) {
     return (
@@ -191,7 +191,7 @@ export default function Analytics() {
               >
                 <Dumbbell className="w-5 h-5 text-primary mb-2" />
                 <div className="text-2xl font-display text-foreground">
-                  {(totalVolume / 1000).toFixed(1)}{volumeUnit}
+                  {Math.round(totalVolume).toLocaleString()}{volumeUnit}
                 </div>
                 <div className="text-sm text-muted-foreground">Total Volume</div>
               </motion.div>
