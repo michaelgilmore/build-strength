@@ -13,6 +13,7 @@ import Routines from "./pages/Routines";
 import Analytics from "./pages/Analytics";
 import WorkoutLog from "./pages/WorkoutLog";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/workout-log" element={<WorkoutLog />} />
                 <Route path="/settings" element={<Settings />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
