@@ -33,7 +33,7 @@ export default function ExerciseForm({
   onCancel,
   isEditing = false,
 }: ExerciseFormProps) {
-  const { unit, formatWeight, convertWeight, convertToKg } = useWeightUnit();
+  const { unit, formatWeight, convertWeight, convertToLbs } = useWeightUnit();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   
@@ -76,12 +76,12 @@ export default function ExerciseForm({
     e.preventDefault();
     if (!formData.name.trim()) return;
     
-    // Convert weights from user's unit back to kg for storage
+    // Convert weights from user's unit to lbs for storage
     onSubmit({
       ...formData,
-      starting_weight: convertToKg(formData.starting_weight),
-      current_weight: convertToKg(formData.current_weight),
-      weight_increment: convertToKg(formData.weight_increment),
+      starting_weight: convertToLbs(formData.starting_weight),
+      current_weight: convertToLbs(formData.current_weight),
+      weight_increment: convertToLbs(formData.weight_increment),
     });
   };
 

@@ -81,7 +81,7 @@ export default function Workout() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const { formatWeight, convertWeight, convertToKg, unit } = useWeightUnit();
+  const { formatWeight, convertWeight, convertToLbs, unit } = useWeightUnit();
   const navigate = useNavigate();
 
   const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
@@ -337,12 +337,12 @@ export default function Workout() {
       return;
     }
 
-    // Convert from user's unit back to kg for storage
-    const newWeightKg = convertToKg(inputWeight);
+    // Convert from user's unit to lbs for storage
+    const newWeightLbs = convertToLbs(inputWeight);
 
     const { error } = await supabase
       .from('exercises')
-      .update({ current_weight: newWeightKg })
+      .update({ current_weight: newWeightLbs })
       .eq('id', currentExercise.id);
 
     if (error) {
@@ -353,7 +353,7 @@ export default function Workout() {
     // Update local state
     setTodaysExercises(prev => prev.map(rd => 
       rd.exercise.id === currentExercise.id 
-        ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeightKg } }
+        ? { ...rd, exercise: { ...rd.exercise, current_weight: newWeightLbs } }
         : rd
     ));
     setIsEditingWeight(false);
