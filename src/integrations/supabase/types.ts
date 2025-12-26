@@ -22,6 +22,7 @@ export type Database = {
           id: string
           image_url: string | null
           name: string
+          reps: number
           rest_seconds: number | null
           sets: number
           starting_weight: number
@@ -37,6 +38,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           name: string
+          reps?: number
           rest_seconds?: number | null
           sets?: number
           starting_weight?: number
@@ -52,6 +54,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string
+          reps?: number
           rest_seconds?: number | null
           sets?: number
           starting_weight?: number
@@ -168,6 +171,7 @@ export type Database = {
           exercise_id: string | null
           exercise_name: string
           id: string
+          reps: number
           set_number: number
           user_id: string
           weight_used: number
@@ -179,6 +183,7 @@ export type Database = {
           exercise_id?: string | null
           exercise_name: string
           id?: string
+          reps?: number
           set_number: number
           user_id: string
           weight_used: number
@@ -190,6 +195,7 @@ export type Database = {
           exercise_id?: string | null
           exercise_name?: string
           id?: string
+          reps?: number
           set_number?: number
           user_id?: string
           weight_used?: number
