@@ -576,7 +576,7 @@ export default function Workout() {
             {todaysAudioUrl && (
               <button 
                 onClick={toggleMusic}
-                className="text-sm text-muted-foreground flex items-center justify-center gap-2 hover:text-foreground transition-colors"
+                className="w-full text-sm text-muted-foreground flex items-center justify-center gap-2 hover:text-foreground transition-colors"
               >
                 {musicEnabled ? (
                   <>
