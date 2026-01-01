@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Check, SkipForward, Loader2, Calendar, Volume2, VolumeX, Search } from 'lucide-react';
+import WorkoutJournal from '@/components/WorkoutJournal';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -879,6 +880,9 @@ export default function Workout() {
                   <div className="text-center">
                     <span>Set {currentSet} of {currentExercise?.sets}</span>
                   </div>
+
+                  {/* Journal Button */}
+                  <WorkoutJournal showButton />
 
                   {/* Audio Toggle */}
                   {todaysAudioUrl && (
