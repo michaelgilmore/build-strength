@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil, Volume2, VolumeX, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
@@ -44,7 +46,13 @@ export default function Workout() {
   const [editedReps, setEditedReps] = useState('');
   const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
-  const [extraExerciseMode, setExtraExerciseMode] = useState<{ originalIndex: number; originalSet: number } | null>(null);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [allExercises, setAllExercises] = useState<any[]>([]);
+  const [extraExerciseMode, setExtraExerciseMode] = useState<{ 
+    originalIndex: number; 
+    originalSet: number;
+    tempExercise?: any; // For exercises not in today's routine
+  } | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -84,7 +92,8 @@ export default function Workout() {
     todaysAudioUrl,
   } = workoutState;
 
-  const currentExercise = todaysExercises[currentExerciseIndex]?.exercise;
+  // Use temp exercise if in extra exercise mode with a non-routine exercise
+  const currentExercise = extraExerciseMode?.tempExercise || todaysExercises[currentExerciseIndex]?.exercise;
   const today = new Date().getDay();
 
   const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises): Promise<{ completed: boolean; resumePoint: ResumePoint | null }> => {
@@ -200,6 +209,23 @@ export default function Workout() {
     fetchActiveRoutine();
   }, [fetchActiveRoutine]);
 
+  // Fetch all exercises for the exercise picker
+  const fetchAllExercises = useCallback(async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('exercises')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('name');
+    
+    setAllExercises(data || []);
+  }, [user]);
+
+  useEffect(() => {
+    fetchAllExercises();
+  }, [fetchAllExercises]);
+
   // Fetch last reps for current exercise when it changes
   const fetchLastReps = useCallback(async () => {
     if (!user || !currentExercise) return;
@@ -285,7 +311,7 @@ export default function Workout() {
   };
 
   const handleSwitchExercise = (exerciseIndex: number) => {
-    // Save the current position before switching
+    // Save the current position before switching (for today's exercises)
     if (!extraExerciseMode) {
       setExtraExerciseMode({
         originalIndex: currentExerciseIndex,
@@ -298,6 +324,29 @@ export default function Workout() {
     setIsWorkoutActive(false);
     setShowExercisePicker(false);
     toast({ title: 'Exercise Switched', description: todaysExercises[exerciseIndex].exercise.name });
+  };
+
+  const handleSwitchToAnyExercise = (exercise: any) => {
+    // Save the current position before switching
+    if (!extraExerciseMode) {
+      setExtraExerciseMode({
+        originalIndex: currentExerciseIndex,
+        originalSet: currentSet,
+        tempExercise: exercise,
+      });
+    } else {
+      // Already in extra exercise mode, just update the temp exercise
+      setExtraExerciseMode({
+        ...extraExerciseMode,
+        tempExercise: exercise,
+      });
+    }
+    
+    setCurrentSet(1);
+    setIsWorkoutActive(false);
+    setShowExercisePicker(false);
+    setCurrentReps(exercise.reps);
+    toast({ title: 'Exercise Switched', description: exercise.name });
   };
 
   const handleSetComplete = async (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
@@ -924,42 +973,103 @@ export default function Workout() {
       </main>
 
       {/* Exercise Picker Dialog */}
-      <Dialog open={showExercisePicker} onOpenChange={setShowExercisePicker}>
-        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+      <Dialog open={showExercisePicker} onOpenChange={(open) => {
+        setShowExercisePicker(open);
+        if (!open) setExerciseSearchQuery('');
+      }}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Switch Exercise</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 mt-4">
-            {todaysExercises.map((day, idx) => (
-              <button
-                key={day.id}
-                onClick={() => handleSwitchExercise(idx)}
-                disabled={idx === currentExerciseIndex}
-                className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left",
-                  idx === currentExerciseIndex 
-                    ? "bg-primary/20 cursor-not-allowed opacity-60" 
-                    : "bg-secondary/50 hover:bg-secondary hover:ring-2 hover:ring-primary"
+          
+          <Tabs defaultValue="today" className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="today">Today's Routine</TabsTrigger>
+              <TabsTrigger value="all">All Exercises</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="today" className="flex-1 overflow-y-auto mt-4">
+              <div className="space-y-2">
+                {todaysExercises.map((day, idx) => {
+                  const isCurrentRoutineExercise = !extraExerciseMode?.tempExercise && idx === currentExerciseIndex;
+                  return (
+                    <button
+                      key={day.id}
+                      onClick={() => handleSwitchExercise(idx)}
+                      disabled={isCurrentRoutineExercise}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left",
+                        isCurrentRoutineExercise
+                          ? "bg-primary/20 cursor-not-allowed opacity-60" 
+                          : "bg-secondary/50 hover:bg-secondary hover:ring-2 hover:ring-primary"
+                      )}
+                    >
+                      <span className={cn(
+                        "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold",
+                        isCurrentRoutineExercise ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      )}>
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1">
+                        <span className="font-medium">{day.exercise.name}</span>
+                        {day.exercise.muscles && day.exercise.muscles.length > 0 && (
+                          <p className="text-xs text-muted-foreground">{day.exercise.muscles.join(' • ')}</p>
+                        )}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {formatWeight(day.exercise.current_weight)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="all" className="flex-1 overflow-hidden flex flex-col mt-4">
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search exercises..."
+                  value={exerciseSearchQuery}
+                  onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {allExercises
+                  .filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
+                  .map((exercise) => {
+                    const isCurrentExercise = currentExercise?.id === exercise.id;
+                    return (
+                      <button
+                        key={exercise.id}
+                        onClick={() => handleSwitchToAnyExercise(exercise)}
+                        disabled={isCurrentExercise}
+                        className={cn(
+                          "w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left",
+                          isCurrentExercise
+                            ? "bg-primary/20 cursor-not-allowed opacity-60" 
+                            : "bg-secondary/50 hover:bg-secondary hover:ring-2 hover:ring-primary"
+                        )}
+                      >
+                        <div className="flex-1">
+                          <span className="font-medium">{exercise.name}</span>
+                          {exercise.muscles && exercise.muscles.length > 0 && (
+                            <p className="text-xs text-muted-foreground">{exercise.muscles.join(' • ')}</p>
+                          )}
+                        </div>
+                        <span className="text-sm text-muted-foreground">
+                          {formatWeight(exercise.current_weight)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                {allExercises.filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase())).length === 0 && (
+                  <p className="text-center text-muted-foreground py-4">No exercises found</p>
                 )}
-              >
-                <span className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold",
-                  idx === currentExerciseIndex ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {idx + 1}
-                </span>
-                <div className="flex-1">
-                  <span className="font-medium">{day.exercise.name}</span>
-                  {day.exercise.muscles && day.exercise.muscles.length > 0 && (
-                    <p className="text-xs text-muted-foreground">{day.exercise.muscles.join(' • ')}</p>
-                  )}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {formatWeight(day.exercise.current_weight)}
-                </span>
-              </button>
-            ))}
-          </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
