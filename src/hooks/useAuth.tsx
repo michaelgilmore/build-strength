@@ -69,67 +69,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (username: string, password: string) => {
-    // Look up the email for this username
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('username', username)
-      .maybeSingle();
-    
-    if (profileError || !profile) {
-      return { error: new Error('Invalid login credentials') };
+    const rawUsername = username.trim();
+
+    // Username-first auth: try a list of possible emails for this username.
+    // IMPORTANT: do not pre-query `profiles` here (RLS blocks anonymous reads and breaks login).
+    const candidateEmails: string[] = [];
+
+    // If the user typed an email, try it directly.
+    if (rawUsername.includes("@")) {
+      candidateEmails.push(rawUsername);
     }
 
-    // Get the user's email from auth.users via the admin API won't work client-side
-    // Instead, we need to look up via a different method
-    // Since we store the generated email pattern, we can try that first
-    // But for existing users with real emails, we need to check
-    
-    // Try the generated email pattern first
-    const generatedEmail = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@muscleforge.local`;
-    
-    let { error } = await supabase.auth.signInWithPassword({
-      email: generatedEmail,
-      password,
-    });
-    
-    // If that fails, try to find the actual email (for legacy accounts)
-    if (error) {
-      // For legacy accounts, the username might be "Mike" but email is "mike@gilmore.cc"
-      // We need to try common patterns or use the actual stored email
-      // Since we can't query auth.users directly, we'll try the legacy email patterns
-      
-      // Check if username looks like an email (for david@goggins.com case)
-      if (username.includes('@')) {
-        const { error: emailError } = await supabase.auth.signInWithPassword({
-          email: username,
-          password,
-        });
-        if (!emailError) {
-          return { error: null };
-        }
-      }
-      
-      // For the Mike case, try mike@gilmore.cc pattern
-      // This is a known migration case - we'll need to handle this specially
-      const lowerUsername = username.toLowerCase();
-      const legacyEmails = [
-        `${lowerUsername}@gilmore.cc`,
-        `${lowerUsername}@goggins.com`,
-      ];
-      
-      for (const tryEmail of legacyEmails) {
-        const { error: tryError } = await supabase.auth.signInWithPassword({
-          email: tryEmail,
-          password,
-        });
-        if (!tryError) {
-          return { error: null };
-        }
-      }
+    // Default generated email pattern (most accounts)
+    const cleanedUsername = rawUsername.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (cleanedUsername) {
+      candidateEmails.push(`${cleanedUsername}@muscleforge.local`);
     }
-    
-    return { error: error as Error | null };
+
+    // Known legacy migration patterns
+    const lowerUsername = rawUsername.toLowerCase();
+    candidateEmails.push(`${lowerUsername}@gilmore.cc`, `${lowerUsername}@goggins.com`);
+
+    let lastError: unknown = null;
+
+    for (const email of Array.from(new Set(candidateEmails))) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (!error) {
+        return { error: null };
+      }
+
+      lastError = error;
+    }
+
+    return {
+      error: (lastError as Error) ?? new Error("Invalid login credentials"),
+    };
   };
 
   const signOut = async () => {
