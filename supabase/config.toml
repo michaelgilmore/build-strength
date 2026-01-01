@@ -1,1 +1,4 @@
 project_id = "sxtaqhghithlaathlxgx"
+
+[functions.send-temp-password]
+verify_jwt = false
