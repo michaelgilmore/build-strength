@@ -1,16 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
-import { Resend } from "https://esm.sh/resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface SendTempPasswordRequest {
+interface ResetPasswordRequest {
   username: string;
+  answer: number;
 }
 
 function generateTempPassword(): string {
@@ -30,12 +28,21 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { username }: SendTempPasswordRequest = await req.json();
+    const { username, answer }: ResetPasswordRequest = await req.json();
     console.log("Looking up username:", username);
 
     if (!username || username.trim() === "") {
       return new Response(
         JSON.stringify({ error: "Username is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    // Check the security question answer
+    if (answer !== 42) {
+      console.log("Incorrect answer provided:", answer);
+      return new Response(
+        JSON.stringify({ error: "Incorrect answer" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -47,7 +54,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Look up the user's profile by username
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("user_id, email, display_name")
+      .select("user_id")
       .eq("username", username)
       .maybeSingle();
 
@@ -62,19 +69,8 @@ const handler = async (req: Request): Promise<Response> => {
     if (!profile) {
       console.log("No profile found for username:", username);
       return new Response(
-        JSON.stringify({ error: "Username not found", noEmail: false }),
+        JSON.stringify({ error: "Username not found" }),
         { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
-    }
-
-    // Check if user has an email that's not the generated local one
-    const hasRealEmail = profile.email && !profile.email.endsWith("@muscleforge.local");
-
-    if (!hasRealEmail) {
-      console.log("No email associated with username:", username);
-      return new Response(
-        JSON.stringify({ error: "No email associated with this account", noEmail: true }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -96,33 +92,8 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Send the email with temp password
-    const displayName = profile.display_name || username;
-    const emailResponse = await resend.emails.send({
-      from: "Muscle Forge <onboarding@resend.dev>",
-      to: [profile.email],
-      subject: "Your Temporary Password - Muscle Forge",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #f97316; margin-bottom: 20px;">Password Reset</h1>
-          <p style="margin-bottom: 15px;">Hi ${displayName},</p>
-          <p style="margin-bottom: 15px;">You requested a password reset for your Muscle Forge account.</p>
-          <p style="margin-bottom: 15px;">Your temporary password is:</p>
-          <div style="background-color: #1a1a1a; color: #ffffff; padding: 15px 20px; border-radius: 8px; font-family: monospace; font-size: 18px; letter-spacing: 2px; text-align: center; margin: 20px 0;">
-            ${tempPassword}
-          </div>
-          <p style="margin-bottom: 15px;">Please log in with this password and change it immediately in your Settings.</p>
-          <p style="color: #888; font-size: 14px; margin-top: 30px;">If you didn't request this, please ignore this email or contact support.</p>
-          <p style="margin-top: 20px;">Keep crushing it! 💪</p>
-          <p style="color: #f97316; font-weight: bold;">The Muscle Forge Team</p>
-        </div>
-      `,
-    });
-
-    console.log("Email sent successfully:", emailResponse);
-
     return new Response(
-      JSON.stringify({ success: true, message: "Temporary password sent to your email" }),
+      JSON.stringify({ success: true, tempPassword }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   } catch (error: any) {
