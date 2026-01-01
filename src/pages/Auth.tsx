@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Dumbbell, Mail, Lock, User, Loader2 } from "lucide-react";
+import { Dumbbell, Mail, Lock, User, Loader2, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,14 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import loginBg from "@/assets/login-bg.jpg";
 
-const authSchema = z.object({
-  email: z.string().email("Invalid email address"),
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const signupSchema = z.object({
+  username: z.string().min(2, "Username must be at least 2 characters").max(30, "Username must be 30 characters or less"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   displayName: z.string().min(2, "Name must be at least 2 characters").optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
 });
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -35,11 +42,16 @@ export default function Auth() {
 
   const validateForm = () => {
     try {
-      authSchema.parse({
-        email,
-        password,
-        displayName: !isLogin ? displayName : undefined,
-      });
+      if (isLogin) {
+        loginSchema.parse({ username, password });
+      } else {
+        signupSchema.parse({
+          username,
+          password,
+          displayName: displayName || undefined,
+          email: email || undefined,
+        });
+      }
       setErrors({});
       return true;
     } catch (error) {
@@ -65,12 +77,12 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(username, password);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
             toast({
               title: "Login Failed",
-              description: "Invalid email or password. Please try again.",
+              description: "Invalid username or password. Please try again.",
               variant: "destructive",
             });
           } else {
@@ -87,12 +99,12 @@ export default function Auth() {
           });
         }
       } else {
-        const { error } = await signUp(email, password, displayName);
+        const { error } = await signUp(username, password, displayName, email || undefined);
         if (error) {
-          if (error.message.includes("already registered")) {
+          if (error.message.includes("already registered") || error.message.includes("Username already taken")) {
             toast({
               title: "Account Exists",
-              description: "This email is already registered. Try logging in.",
+              description: "This username is already taken. Try a different one.",
               variant: "destructive",
             });
           } else {
@@ -166,7 +178,7 @@ export default function Auth() {
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                   <Input
                     type="text"
-                    placeholder="Your name"
+                    placeholder="Your name (optional)"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     className="pl-10"
@@ -177,19 +189,36 @@ export default function Auth() {
             )}
 
             <div className="space-y-2">
-              <label className="text-sm text-muted-foreground">Email</label>
+              <label className="text-sm text-muted-foreground">Username</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  type="text"
+                  placeholder="Enter username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
+              {errors.username && <p className="text-destructive text-sm">{errors.username}</p>}
             </div>
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">Email (optional)</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">Password</label>
