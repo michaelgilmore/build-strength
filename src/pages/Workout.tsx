@@ -6,6 +6,12 @@ import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import ExerciseAnimation from '@/components/ExerciseAnimation';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useWeightUnit } from '@/hooks/useWeightUnit';
@@ -37,6 +43,8 @@ export default function Workout() {
   const [isEditingReps, setIsEditingReps] = useState(false);
   const [editedReps, setEditedReps] = useState('');
   const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
+  const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [extraExerciseMode, setExtraExerciseMode] = useState<{ originalIndex: number; originalSet: number } | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -276,14 +284,33 @@ export default function Workout() {
     setIsWorkoutActive(false);
   };
 
+  const handleSwitchExercise = (exerciseIndex: number) => {
+    // Save the current position before switching
+    if (!extraExerciseMode) {
+      setExtraExerciseMode({
+        originalIndex: currentExerciseIndex,
+        originalSet: currentSet,
+      });
+    }
+    
+    setCurrentExerciseIndex(exerciseIndex);
+    setCurrentSet(1);
+    setIsWorkoutActive(false);
+    setShowExercisePicker(false);
+    toast({ title: 'Exercise Switched', description: todaysExercises[exerciseIndex].exercise.name });
+  };
+
   const handleSetComplete = async (feedback?: 'too_hard' | 'too_easy' | 'neutral') => {
     if (!currentExercise || !user) return;
+
+    // For extra exercise mode, log with a special set number to indicate it's an extra set
+    const setNumberToLog = extraExerciseMode ? currentSet : currentSet;
 
     const { error } = await supabase.from('workout_logs').insert({
       user_id: user.id,
       exercise_id: currentExercise.id,
       exercise_name: currentExercise.name,
-      set_number: currentSet,
+      set_number: setNumberToLog,
       weight_used: currentExercise.current_weight,
       workout_type: currentExercise.workout_type,
       difficulty_feedback: feedback || 'neutral',
@@ -311,7 +338,17 @@ export default function Workout() {
       toast({ title: 'Weight Decreased', description: `Next time: ${formatWeight(newWeight)}` });
     }
 
-    // Move to next set or exercise
+    // If in extra exercise mode, return to original position after completing the set
+    if (extraExerciseMode) {
+      setCurrentExerciseIndex(extraExerciseMode.originalIndex);
+      setCurrentSet(extraExerciseMode.originalSet);
+      setExtraExerciseMode(null);
+      setIsWorkoutActive(false);
+      toast({ title: 'Resuming Routine', description: todaysExercises[extraExerciseMode.originalIndex].exercise.name });
+      return;
+    }
+
+    // Normal progression: Move to next set or exercise
     if (currentSet < currentExercise.sets) {
       setCurrentSet(currentSet + 1);
       setIsResting(true, currentExercise.rest_seconds);
@@ -706,9 +743,18 @@ export default function Workout() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                <h2 className="text-3xl font-display text-gradient-fire mb-1">
+                {extraExerciseMode && (
+                  <div className="text-xs text-primary bg-primary/10 px-2 py-1 rounded-full mb-2">
+                    Extra Set • Will resume after
+                  </div>
+                )}
+                <button 
+                  onClick={() => setShowExercisePicker(true)}
+                  className="text-3xl font-display text-gradient-fire mb-1 hover:opacity-80 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                >
                   {currentExercise?.name}
-                </h2>
+                  <Pencil className="w-4 h-4 text-primary" />
+                </button>
                 {currentExercise?.muscles && currentExercise.muscles.length > 0 && (
                   <p className="text-sm text-muted-foreground mb-2">
                     {currentExercise.muscles.join(' • ')}
@@ -876,6 +922,46 @@ export default function Workout() {
           </div>
         )}
       </main>
+
+      {/* Exercise Picker Dialog */}
+      <Dialog open={showExercisePicker} onOpenChange={setShowExercisePicker}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Switch Exercise</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 mt-4">
+            {todaysExercises.map((day, idx) => (
+              <button
+                key={day.id}
+                onClick={() => handleSwitchExercise(idx)}
+                disabled={idx === currentExerciseIndex}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-lg transition-all text-left",
+                  idx === currentExerciseIndex 
+                    ? "bg-primary/20 cursor-not-allowed opacity-60" 
+                    : "bg-secondary/50 hover:bg-secondary hover:ring-2 hover:ring-primary"
+                )}
+              >
+                <span className={cn(
+                  "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold",
+                  idx === currentExerciseIndex ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {idx + 1}
+                </span>
+                <div className="flex-1">
+                  <span className="font-medium">{day.exercise.name}</span>
+                  {day.exercise.muscles && day.exercise.muscles.length > 0 && (
+                    <p className="text-xs text-muted-foreground">{day.exercise.muscles.join(' • ')}</p>
+                  )}
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {formatWeight(day.exercise.current_weight)}
+                </span>
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <BottomNav />
     </div>
