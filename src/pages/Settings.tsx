@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings as SettingsIcon, Lock, Eye, EyeOff, Shield, Music } from 'lucide-react';
+import { Settings as SettingsIcon, Lock, Eye, EyeOff, Shield, Music, User, Mail, AtSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -29,21 +29,74 @@ export default function Settings() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
       
-      const { data } = await supabase.rpc('has_role', { 
+      // Check admin status
+      const { data: adminData } = await supabase.rpc('has_role', { 
         _user_id: user.id, 
         _role: 'admin' 
       });
+      setIsAdmin(!!adminData);
       
-      setIsAdmin(!!data);
+      // Fetch profile with username
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (profile) {
+        setUsername(profile.username);
+      }
+      
+      // Set email from auth user (filter out generated emails)
+      const userEmail = user.email || '';
+      if (!userEmail.endsWith('@muscleforge.local')) {
+        setEmail(userEmail);
+      }
     };
     
-    checkAdmin();
+    fetchUserData();
   }, [user]);
+
+  const handleEmailUpdate = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    
+    const { error } = await supabase.auth.updateUser({
+      email: email,
+    });
+
+    setIsUpdatingEmail(false);
+
+    if (error) {
+      toast({
+        title: "Error updating email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Email updated",
+        description: "Your email has been changed successfully.",
+      });
+    }
+  };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +195,55 @@ export default function Settings() {
                 <Shield className="w-4 h-4 mr-2" />
                 Open Admin Panel
               </Button>
+            </div>
+          )}
+
+          {user && (
+            <div className="card-intense p-4">
+              <div className="flex items-center gap-3 mb-4">
+                <User className="w-5 h-5 text-primary" />
+                <h2 className="font-display text-lg text-foreground">Account</h2>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="username" className="flex items-center gap-2">
+                    <AtSign className="w-4 h-4" />
+                    Username
+                  </Label>
+                  <Input
+                    id="username"
+                    value={username}
+                    disabled
+                    className="bg-muted"
+                  />
+                  <p className="text-xs text-muted-foreground">Username cannot be changed</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleEmailUpdate}
+                      disabled={isUpdatingEmail}
+                      size="sm"
+                    >
+                      {isUpdatingEmail ? 'Saving...' : 'Save'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
