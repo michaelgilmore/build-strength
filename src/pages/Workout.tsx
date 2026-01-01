@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Check, SkipForward, Loader2, Calendar, Pencil, Volume2, VolumeX, Search } from 'lucide-react';
+import { Play, Pause, Check, SkipForward, Loader2, Calendar, Volume2, VolumeX, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -799,10 +799,9 @@ export default function Workout() {
                 )}
                 <button 
                   onClick={() => setShowExercisePicker(true)}
-                  className="text-3xl font-display text-gradient-fire mb-1 hover:opacity-80 transition-opacity cursor-pointer relative inline-flex items-center justify-center w-full"
+                  className="text-3xl font-display text-gradient-fire mb-1 hover:opacity-80 transition-opacity cursor-pointer"
                 >
-                  <span>{currentExercise?.name}</span>
-                  <Pencil className="w-4 h-4 text-primary absolute right-0 top-1/2 -translate-y-1/2 mr-4" />
+                  {currentExercise?.name}
                 </button>
                 {currentExercise?.muscles && currentExercise.muscles.length > 0 && (
                   <p className="text-sm text-muted-foreground mb-2">
@@ -841,10 +840,9 @@ export default function Workout() {
                     ) : (
                       <button
                         onClick={openWeightEditor}
-                        className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                        className="font-bold text-primary hover:underline cursor-pointer"
                       >
                         {currentExercise ? formatWeight(currentExercise.current_weight) : ''}
-                        <Pencil className="w-4 h-4" />
                       </button>
                     )}
                     
@@ -870,10 +868,9 @@ export default function Workout() {
                     ) : (
                       <button
                         onClick={openRepsEditor}
-                        className="flex items-center gap-1 font-bold text-primary hover:underline cursor-pointer"
+                        className="font-bold text-primary hover:underline cursor-pointer"
                       >
                         {currentReps} reps
-                        <Pencil className="w-4 h-4" />
                       </button>
                     )}
                   </div>
