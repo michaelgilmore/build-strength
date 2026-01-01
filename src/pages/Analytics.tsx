@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, TrendingUp, Calendar, Dumbbell, Award } from 'lucide-react';
+import WorkoutJournal from '@/components/WorkoutJournal';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
@@ -305,6 +306,9 @@ export default function Analytics() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Workout Journal */}
+            <WorkoutJournal showNavigator />
           </div>
         )}
       </main>
