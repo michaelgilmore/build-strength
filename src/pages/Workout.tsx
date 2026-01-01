@@ -799,10 +799,10 @@ export default function Workout() {
                 )}
                 <button 
                   onClick={() => setShowExercisePicker(true)}
-                  className="text-3xl font-display text-gradient-fire mb-1 hover:opacity-80 transition-opacity cursor-pointer flex items-center justify-center gap-2"
+                  className="text-3xl font-display text-gradient-fire mb-1 hover:opacity-80 transition-opacity cursor-pointer relative inline-flex items-center justify-center w-full"
                 >
-                  {currentExercise?.name}
-                  <Pencil className="w-4 h-4 text-primary" />
+                  <span>{currentExercise?.name}</span>
+                  <Pencil className="w-4 h-4 text-primary absolute right-0 top-1/2 -translate-y-1/2 mr-4" />
                 </button>
                 {currentExercise?.muscles && currentExercise.muscles.length > 0 && (
                   <p className="text-sm text-muted-foreground mb-2">
