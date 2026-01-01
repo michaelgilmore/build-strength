@@ -33,7 +33,8 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [forgotUsername, setForgotUsername] = useState("");
-  const [forgotResult, setForgotResult] = useState<{ type: "success" | "noEmail" | "error"; message: string } | null>(null);
+  const [forgotAnswer, setForgotAnswer] = useState("");
+  const [forgotResult, setForgotResult] = useState<{ type: "success" | "error"; message: string; tempPassword?: string } | null>(null);
 
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -139,12 +140,18 @@ export default function Auth() {
       return;
     }
 
+    const answerNum = parseInt(forgotAnswer, 10);
+    if (isNaN(answerNum)) {
+      setForgotResult({ type: "error", message: "Please enter a number" });
+      return;
+    }
+
     setLoading(true);
     setForgotResult(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("send-temp-password", {
-        body: { username: forgotUsername.trim() },
+        body: { username: forgotUsername.trim(), answer: answerNum },
       });
 
       if (error) {
@@ -152,18 +159,16 @@ export default function Auth() {
         return;
       }
 
-      if (data.noEmail) {
-        setForgotResult({ 
-          type: "noEmail", 
-          message: "No email is associated with this account. Please contact Mike to reset your password." 
-        });
-      } else if (data.success) {
+      if (data.success && data.tempPassword) {
         setForgotResult({ 
           type: "success", 
-          message: "A temporary password has been sent to your email. Please check your inbox." 
+          message: "Your password has been reset!",
+          tempPassword: data.tempPassword
         });
       } else if (data.error === "Username not found") {
         setForgotResult({ type: "error", message: "Username not found. Please check and try again." });
+      } else if (data.error === "Incorrect answer") {
+        setForgotResult({ type: "error", message: "Incorrect answer. Please try again." });
       } else {
         setForgotResult({ type: "error", message: data.error || "Something went wrong. Please try again." });
       }
@@ -180,6 +185,7 @@ export default function Auth() {
     setErrors({});
     setForgotResult(null);
     setForgotUsername("");
+    setForgotAnswer("");
   };
 
   return (
@@ -254,6 +260,19 @@ export default function Auth() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <label className="text-sm text-muted-foreground">How many roads must a man walk down?</label>
+                  <Input
+                    type="number"
+                    placeholder="Enter your answer"
+                    value={forgotAnswer}
+                    onChange={(e) => {
+                      setForgotAnswer(e.target.value);
+                      setForgotResult(null);
+                    }}
+                  />
+                </div>
+
                 {forgotResult && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
@@ -261,17 +280,18 @@ export default function Auth() {
                     className={`p-4 rounded-lg text-sm ${
                       forgotResult.type === "success"
                         ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                        : forgotResult.type === "noEmail"
-                        ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/30"
                         : "bg-destructive/20 text-destructive border border-destructive/30"
                     }`}
                   >
-                    {forgotResult.message}
+                    <p>{forgotResult.message}</p>
+                    {forgotResult.tempPassword && (
+                      <p className="mt-2 font-mono text-lg font-bold">{forgotResult.tempPassword}</p>
+                    )}
                   </motion.div>
                 )}
 
                 <Button type="submit" variant="fire" size="lg" className="w-full mt-6" disabled={loading}>
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Send Temporary Password"}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Reset Password"}
                 </Button>
               </form>
 
