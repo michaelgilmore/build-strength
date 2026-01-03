@@ -388,8 +388,25 @@ export default function Workout() {
       toast({ title: 'Weight Decreased', description: `Next time: ${formatWeight(newWeight)}` });
     }
 
-    // If in extra exercise mode, return to original position after completing the set
+    // If in extra exercise mode, handle completion
     if (extraExerciseMode) {
+      // Rest day one-off exercise - check if more sets remain
+      if (todaysExercises.length === 0) {
+        if (currentSet < currentExercise.sets) {
+          // More sets to go
+          setCurrentSet(currentSet + 1);
+          setIsResting(true, currentExercise.rest_seconds);
+        } else {
+          // All sets done - end the workout
+          setExtraExerciseMode(null);
+          setWorkoutStarted(false);
+          setIsWorkoutActive(false);
+          toast({ title: 'Exercise Complete!', description: 'Great work on your rest day!' });
+        }
+        return;
+      }
+      
+      // Regular workout - return to original position after completing the set
       setCurrentExerciseIndex(extraExerciseMode.originalIndex);
       setCurrentSet(extraExerciseMode.originalSet);
       setExtraExerciseMode(null);
@@ -592,8 +609,8 @@ export default function Workout() {
     );
   }
 
-  // No exercises today
-  if (todaysExercises.length === 0) {
+  // No exercises today - Rest Day with one-off exercise option
+  if (todaysExercises.length === 0 && !extraExerciseMode?.tempExercise) {
     return (
       <div className="min-h-screen pb-20">
         <Header />
@@ -604,12 +621,66 @@ export default function Workout() {
             <p className="text-muted-foreground mb-6">
               No exercises scheduled for {DAYS_OF_WEEK[today]}.
             </p>
-            <Button variant="outline" onClick={() => navigate('/routines')}>
-              Edit Routine
-            </Button>
+            <div className="flex flex-col gap-3">
+              <Button variant="fire" onClick={() => setShowExercisePicker(true)}>
+                Do a One-Off Exercise
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/routines')}>
+                Edit Routine
+              </Button>
+            </div>
           </motion.div>
         </main>
         <BottomNav />
+
+        {/* Exercise Picker Dialog for Rest Day */}
+        <Dialog open={showExercisePicker} onOpenChange={setShowExercisePicker}>
+          <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>Pick an Exercise</DialogTitle>
+            </DialogHeader>
+            
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search exercises..." 
+                value={exerciseSearchQuery}
+                onChange={(e) => setExerciseSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {allExercises
+                .filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()))
+                .map(exercise => (
+                  <button
+                    key={exercise.id}
+                    onClick={() => {
+                      setExtraExerciseMode({
+                        originalIndex: 0,
+                        originalSet: 1,
+                        tempExercise: exercise,
+                      });
+                      setCurrentSet(1);
+                      setCurrentReps(exercise.reps);
+                      setWorkoutStarted(true);
+                      setShowExercisePicker(false);
+                    }}
+                    className="w-full text-left p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
+                  >
+                    <div className="font-medium">{exercise.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {formatWeight(exercise.current_weight)} × {exercise.reps} reps × {exercise.sets} sets
+                    </div>
+                  </button>
+                ))}
+              {allExercises.filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase())).length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No exercises found</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
