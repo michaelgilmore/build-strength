@@ -125,7 +125,7 @@ const WorkoutContext = createContext<WorkoutContextType | null>(null);
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<WorkoutState>(initialState);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
   // Global timer that runs regardless of which page the user is on
