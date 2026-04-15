@@ -720,12 +720,27 @@ export default function Workout() {
                 const isPartial = resumePoint ? idx === resumePoint.exerciseIndex && resumePoint.setNumber > 1 : false;
                 
                 return (
-                  <div
+                  <button
                     key={day.id}
+                    onClick={() => {
+                      if (!isCompleted) {
+                        setExtraExerciseMode({
+                          originalIndex: idx,
+                          originalSet: 1,
+                          returnToList: true,
+                        });
+                        setCurrentExerciseIndex(idx);
+                        setCurrentSet(isPartial ? resumePoint!.setNumber : 1);
+                        setCurrentReps(day.exercise.reps);
+                        setWorkoutStarted(true);
+                        activateWorkout();
+                      }
+                    }}
                     className={cn(
-                      "flex items-center gap-3 p-3 rounded-lg",
-                      isCompleted ? "bg-success/20" : isPartial ? "bg-primary/20" : "bg-secondary/50"
+                      "flex items-center gap-3 p-3 rounded-lg w-full text-left transition-colors",
+                      isCompleted ? "bg-success/20" : isPartial ? "bg-primary/20 hover:bg-primary/30" : "bg-secondary/50 hover:bg-secondary"
                     )}
+                    disabled={isCompleted}
                   >
                     <span className={cn(
                       "w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold",
@@ -747,7 +762,7 @@ export default function Workout() {
                       )}
                       {isCompleted && <span className="text-success">Complete</span>}
                     </span>
-                  </div>
+                  </button>
                 );
               })}
             </div>
