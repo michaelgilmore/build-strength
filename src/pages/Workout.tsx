@@ -53,6 +53,7 @@ export default function Workout() {
     originalIndex: number; 
     originalSet: number;
     tempExercise?: any; // For exercises not in today's routine
+    returnToList?: boolean; // When tapping an exercise from the pre-workout list
   } | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const repsInputRef = useRef<HTMLInputElement | null>(null);
