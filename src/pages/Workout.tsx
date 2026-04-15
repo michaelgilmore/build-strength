@@ -394,20 +394,23 @@ export default function Workout() {
       // Rest day one-off or "return to list" exercise - check if more sets remain
       if (todaysExercises.length === 0 || extraExerciseMode.returnToList) {
         if (currentSet < currentExercise.sets) {
-          // More sets to go
-          setCurrentSet(currentSet + 1);
+          // More sets to go - return to list, remember next set
+          setExtraExerciseMode(prev => prev ? { ...prev, originalSet: currentSet + 1 } : null);
+          setIsWorkoutActive(false);
+          setWorkoutStarted(false);
+          // Start rest timer so it counts down while on the list
           setIsResting(true, currentExercise.rest_seconds);
+          fetchActiveRoutine();
+          toast({ title: 'Set Complete!', description: `Set ${currentSet}/${currentExercise.sets} done` });
         } else {
-          // All sets done - return to list or end workout
+          // All sets done - return to list
           setExtraExerciseMode(null);
           setIsWorkoutActive(false);
+          setWorkoutStarted(false);
+          fetchActiveRoutine();
           if (todaysExercises.length === 0) {
-            setWorkoutStarted(false);
             toast({ title: 'Exercise Complete!', description: 'Great work on your rest day!' });
           } else {
-            setWorkoutStarted(false);
-            // Refresh completion status
-            fetchActiveRoutine();
             toast({ title: 'Exercise Complete!', description: `${currentExercise.name} done!` });
           }
         }
