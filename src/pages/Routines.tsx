@@ -488,9 +488,47 @@ export default function Routines() {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
               >
-                <h3 className="text-lg font-display text-foreground">
-                  Edit: {selectedRoutine.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-display text-foreground">Edit:</span>
+                  {isOwnRoutine ? (
+                    <Input
+                      value={selectedRoutine.name}
+                      onChange={(e) =>
+                        setSelectedRoutine({ ...selectedRoutine, name: e.target.value })
+                      }
+                      onBlur={async (e) => {
+                        const newName = e.target.value.trim();
+                        if (!newName || newName === routines.find(r => r.id === selectedRoutine.id)?.name) {
+                          if (!newName) {
+                            setSelectedRoutine({
+                              ...selectedRoutine,
+                              name: routines.find(r => r.id === selectedRoutine.id)?.name || selectedRoutine.name,
+                            });
+                          }
+                          return;
+                        }
+                        const { error } = await supabase
+                          .from('routines')
+                          .update({ name: newName })
+                          .eq('id', selectedRoutine.id);
+                        if (error) {
+                          toast({ title: 'Error', description: 'Failed to rename routine', variant: 'destructive' });
+                        } else {
+                          setRoutines((prev) =>
+                            prev.map((r) => (r.id === selectedRoutine.id ? { ...r, name: newName } : r))
+                          );
+                          toast({ title: 'Routine Renamed' });
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
+                      }}
+                      className="text-lg font-display h-9 max-w-xs"
+                    />
+                  ) : (
+                    <span className="text-lg font-display text-foreground">{selectedRoutine.name}</span>
+                  )}
+                </div>
 
                 {/* Day Selector */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
