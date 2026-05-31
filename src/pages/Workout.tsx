@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +49,7 @@ export default function Workout() {
   const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [extraExerciseMode, setExtraExerciseMode] = useState<{ 
     originalIndex: number; 
@@ -96,7 +98,9 @@ export default function Workout() {
 
   // Use temp exercise if in extra exercise mode with a non-routine exercise
   const currentExercise = extraExerciseMode?.tempExercise || todaysExercises[currentExerciseIndex]?.exercise;
-  const today = new Date().getDay();
+  const today = selectedDay;
+  const actualToday = new Date().getDay();
+  const isViewingOtherDay = selectedDay !== actualToday;
 
   const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises): Promise<{ completed: boolean; resumePoint: ResumePoint | null }> => {
     if (!user || exercises.length === 0) return { completed: false, resumePoint: null };
@@ -560,7 +564,7 @@ export default function Workout() {
   }
 
   // Already completed today's workout
-  if (alreadyCompletedToday && !workoutStarted) {
+  if (alreadyCompletedToday && !workoutStarted && !isViewingOtherDay) {
     return (
       <div className="min-h-screen pb-20">
         <Header />
@@ -628,10 +632,27 @@ export default function Workout() {
         <main className="px-4 py-12 max-w-2xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-display text-foreground mb-2">Rest Day</h2>
+            <h2 className="text-2xl font-display text-foreground mb-2">
+              {isViewingOtherDay ? `${DAYS_OF_WEEK[today]}'s Routine` : 'Rest Day'}
+            </h2>
             <p className="text-muted-foreground mb-6">
               No exercises scheduled for {DAYS_OF_WEEK[today]}.
             </p>
+
+            <div className="mb-6 max-w-xs mx-auto">
+              <label className="text-xs text-muted-foreground mb-1 block text-left">Workout day</label>
+              <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DAYS_OF_WEEK.map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {d}{i === actualToday ? ' (Today)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-3">
               <Button variant="fire" onClick={() => setShowExercisePicker(true)}>
                 Do a One-Off Exercise
@@ -710,10 +731,25 @@ export default function Workout() {
             <div>
               <h2 className="text-3xl font-display text-foreground mb-2">
                 {DAYS_OF_WEEK[today]}'s Workout
+                {isViewingOtherDay && <span className="text-base text-muted-foreground ml-2">(preview)</span>}
               </h2>
               <p className="text-lg text-muted-foreground">
                 {todaysExercises.length} exercise{todaysExercises.length !== 1 ? 's' : ''} • {activeRoutine?.name}
               </p>
+            </div>
+
+            <div className="max-w-xs mx-auto">
+              <label className="text-xs text-muted-foreground mb-1 block text-left">Workout day</label>
+              <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DAYS_OF_WEEK.map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {d}{i === actualToday ? ' (Today)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Exercise Preview */}
