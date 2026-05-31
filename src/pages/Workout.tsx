@@ -49,6 +49,7 @@ export default function Workout() {
   const [resumePoint, setResumePoint] = useState<ResumePoint | null>(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
+  const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [extraExerciseMode, setExtraExerciseMode] = useState<{ 
     originalIndex: number; 
