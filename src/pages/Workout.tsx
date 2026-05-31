@@ -98,7 +98,9 @@ export default function Workout() {
 
   // Use temp exercise if in extra exercise mode with a non-routine exercise
   const currentExercise = extraExerciseMode?.tempExercise || todaysExercises[currentExerciseIndex]?.exercise;
-  const today = new Date().getDay();
+  const today = selectedDay;
+  const actualToday = new Date().getDay();
+  const isViewingOtherDay = selectedDay !== actualToday;
 
   const checkIfWorkoutCompletedToday = useCallback(async (exercises: typeof todaysExercises): Promise<{ completed: boolean; resumePoint: ResumePoint | null }> => {
     if (!user || exercises.length === 0) return { completed: false, resumePoint: null };
