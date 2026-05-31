@@ -632,10 +632,27 @@ export default function Workout() {
         <main className="px-4 py-12 max-w-2xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Calendar className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-2xl font-display text-foreground mb-2">Rest Day</h2>
+            <h2 className="text-2xl font-display text-foreground mb-2">
+              {isViewingOtherDay ? `${DAYS_OF_WEEK[today]}'s Routine` : 'Rest Day'}
+            </h2>
             <p className="text-muted-foreground mb-6">
               No exercises scheduled for {DAYS_OF_WEEK[today]}.
             </p>
+
+            <div className="mb-6 max-w-xs mx-auto">
+              <label className="text-xs text-muted-foreground mb-1 block text-left">Workout day</label>
+              <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DAYS_OF_WEEK.map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {d}{i === actualToday ? ' (Today)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-3">
               <Button variant="fire" onClick={() => setShowExercisePicker(true)}>
                 Do a One-Off Exercise
