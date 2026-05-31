@@ -731,10 +731,25 @@ export default function Workout() {
             <div>
               <h2 className="text-3xl font-display text-foreground mb-2">
                 {DAYS_OF_WEEK[today]}'s Workout
+                {isViewingOtherDay && <span className="text-base text-muted-foreground ml-2">(preview)</span>}
               </h2>
               <p className="text-lg text-muted-foreground">
                 {todaysExercises.length} exercise{todaysExercises.length !== 1 ? 's' : ''} • {activeRoutine?.name}
               </p>
+            </div>
+
+            <div className="max-w-xs mx-auto">
+              <label className="text-xs text-muted-foreground mb-1 block text-left">Workout day</label>
+              <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(Number(v))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DAYS_OF_WEEK.map((d, i) => (
+                    <SelectItem key={i} value={String(i)}>
+                      {d}{i === actualToday ? ' (Today)' : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Exercise Preview */}
