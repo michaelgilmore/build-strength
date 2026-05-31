@@ -564,7 +564,7 @@ export default function Workout() {
   }
 
   // Already completed today's workout
-  if (alreadyCompletedToday && !workoutStarted) {
+  if (alreadyCompletedToday && !workoutStarted && !isViewingOtherDay) {
     return (
       <div className="min-h-screen pb-20">
         <Header />
